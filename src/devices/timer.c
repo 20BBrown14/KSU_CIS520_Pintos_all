@@ -7,6 +7,7 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include <stdlib.h>
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -90,10 +91,22 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
+  struct semaphore semvar;
+  sema_init(&semvar, 1);
+  printf("%d\n", semvar.value);
+  //struct list_elem listElem;
+  //struct list waitersList;
+  //listElem->prev = NULL;
+  //listElem->next = NULL;
+  //list_insert(list_head(&waitersList), &listElem);
+  //semvar.waiters ={ running_thread ()};
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
+  while (timer_elapsed (start) < ticks)
+  {
     thread_yield ();
+  }	
+  //running_thread();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
