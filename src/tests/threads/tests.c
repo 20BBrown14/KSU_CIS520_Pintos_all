@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define DEBUG
+
 struct test 
   {
     const char *name;
@@ -70,9 +72,17 @@ msg (const char *format, ...)
   va_list args;
   
   printf ("(%s) ", test_name);
+
+  
+
   va_start (args, format);
   vprintf (format, args);
   va_end (args);
+
+  /* added when testing timer.c in project 1 */
+  #ifdef DEBUG
+  printf ("\nticks = %d ",timer_ticks());
+  #endif
   putchar ('\n');
 }
 

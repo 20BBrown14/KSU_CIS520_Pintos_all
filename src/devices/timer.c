@@ -31,6 +31,11 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
+/*project 1: added local function */
+static void check_sleeping_threads(void);
+static bool wake_time_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED);
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -38,6 +43,9 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  
+  /* Added for project 1 */
+  list_init(&sleeping_threads);   /* init the list of sleeping threads */
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -91,22 +99,29 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-  struct semaphore semvar;
-  sema_init(&semvar, 1);
-  printf("%d\n", semvar.value);
-  //struct list_elem listElem;
-  //struct list waitersList;
-  //listElem->prev = NULL;
-  //listElem->next = NULL;
-  //list_insert(list_head(&waitersList), &listElem);
-  //semvar.waiters ={ running_thread ()};
 
+  /* Added for project 1 */
+  struct thread * t = thread_current();
+  t->wakeup_time = start + ticks;
+
+  list_push_back(&sleeping_threads, &(t->sleeping_elem)); /* add to list */
+  list_sort(&sleeping_threads, wake_time_less, NULL); /* sort the list using less function defined below*/
+
+  
+  ASSERT (intr_get_level () == INTR_ON);
+  sema_down(&(t->timer_sema)); /* parenthesis are fun, NO ORANGES FOR YOU */ 
+
+
+  /* removed for project 1 replaced by above
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks)
   {
     thread_yield ();
   }	
-  //running_thread();
+  */
+
+  /* end of project 1 changes to this function */
+
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -185,6 +200,26 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  check_sleeping_threads();
+}
+
+/* project 1: see if any threads sleeping are ready to wakeup */
+static void check_sleeping_threads(void)
+{
+  int64_t current_time = timer_ticks();
+  while( sleeping_threads.head.next != &sleeping_threads.tail)
+  {
+    struct thread * t = list_entry(sleeping_threads.head.next, struct thread, sleeping_elem);
+    if(t->wakeup_time <= current_time)  /* fix wraparound if we care enough */
+    {
+      list_pop_front(&sleeping_threads);
+      sema_up(&t->timer_sema);  /* get that thread an orange */
+    }
+    else
+    {
+      return;
+    }
+  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
@@ -256,4 +291,16 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
+}
+
+
+/* Project 1: Returns true if wakeup time for  A is less than B's, false
+   otherwise. */
+static bool wake_time_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED) 
+{
+  const struct thread *a = list_entry (a_, struct thread, sleeping_elem);
+  const struct thread *b = list_entry (b_, struct thread, sleeping_elem);
+  
+  return a->wakeup_time < b->wakeup_time;
 }
