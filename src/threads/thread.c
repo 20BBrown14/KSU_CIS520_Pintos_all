@@ -237,6 +237,11 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
+  // added for project 1
+  // TODO SORT READY LIST
+  // check if running thread priority is lt the thread getting added
+
+
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -308,6 +313,8 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
     list_push_back (&ready_list, &cur->elem);
+    // added for project 1 we should add_n_sort here 
+    // instead of just push back
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -585,3 +592,22 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+/* added for project 1, TODO add min function for sorting */
+/* needs to return a min based on priority and ticks from when added */
+// return is wrong look at other minfunction i think its like 1 if t1 < t2
+static struct thread * minThread(struct thread *t1, *t2)
+  //pardon psuedo code
+  if t1.priority < t2.priority
+    // t1 is min
+  else if t2 < t1
+    // t2 is min
+  else //they must be equal
+    if t1.tickLastTimeAddedToReadyQueue < t2.tickLastTimeAddedToReadyQueue //logic here might not be sound
+      // t1 was added to the ready queue before t2 and should remain in front of t2
+      // therefore t2 should be sorted as a "lower" priority
+      // since this sort it the min we should indicate that t2 is min here
+    else 
+      // t1 is min
+      
