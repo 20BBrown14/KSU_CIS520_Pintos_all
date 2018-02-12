@@ -69,6 +69,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+static bool maxThread(struct thread *t1, *t2);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -238,11 +239,13 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   // added for project 1
-  // TODO SORT READY LIST
-  // check if running thread priority is lt the thread getting added
-
-
+  list_sort(&ready_list, maxThread, NULL);
+  // preempt running thread if it is not at front of ready list
+  running_thread()->status = THREAD_READY;
   t->status = THREAD_READY;
+  schedule();
+
+
   intr_set_level (old_level);
 }
 
@@ -312,9 +315,11 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
+  {
     list_push_back (&ready_list, &cur->elem);
-    // added for project 1 we should add_n_sort here 
-    // instead of just push back
+    // added for project 1
+    list_sort(&ready_list, maxThread, NULL);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -594,20 +599,33 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
-/* added for project 1, TODO add min function for sorting */
-/* needs to return a min based on priority and ticks from when added */
-// return is wrong look at other minfunction i think its like 1 if t1 < t2
-static struct thread * minThread(struct thread *t1, *t2)
+/* added for project 1 */
+/* needs to return a max based on priority and ticks from when added */
+static bool maxThread(struct thread *t1, *t2)
   //pardon psuedo code
-  if t1.priority < t2.priority
+  if (t1.priority < t2.priority)
+  {
     // t1 is min
-  else if t2 < t1
+    return false;
+  }
+  else if (t2 < t1)
+  {
     // t2 is min
+    return true;
+  }
   else //they must be equal
-    if t1.tickLastTimeAddedToReadyQueue < t2.tickLastTimeAddedToReadyQueue //logic here might not be sound
+  {
+    if (t1->time_added_to_q < t2->time_added_to_q) // don't need to do this if sort is stable. assuming it's unstable
+    {
       // t1 was added to the ready queue before t2 and should remain in front of t2
       // therefore t2 should be sorted as a "lower" priority
       // since this sort it the min we should indicate that t2 is min here
+      return false;
+    }
     else 
+    {
       // t1 is min
+      return true;
+    }
+  }
       

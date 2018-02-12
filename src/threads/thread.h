@@ -95,6 +95,8 @@ struct thread
     struct semaphore timer_sema;        /* used for blocking threads with a timer*/
     int64_t wakeup_time;                /* the time in ticks when a thread should wake up*/
     struct list_elem sleeping_elem;     /* a list element for the sleeping threads list*/ 
+
+    int64_t time_added_to_q;            /* when the thread was added to the ready queue. used to break ties in priority. */  
     
 
     /* Shared between thread.c and synch.c. */
