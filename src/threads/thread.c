@@ -111,17 +111,17 @@ thread_start (void)
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
-  printf("Creating Idle thread\n");
+  // printf("Creating Idle thread\n");
   thread_create ("idle", PRI_MIN, idle, &idle_started);
-  printf("Idle thread created\n");
+  // printf("Idle thread created\n");
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
   /* Wait for the idle thread to initialize idle_thread. */
-  printf("Thread %s calling sema_down\n", running_thread()->name);
+  // printf("Thread %s calling sema_down\n", running_thread()->name);
   sema_down (&idle_started);
-  printf("Returning from sema_down\n");
+  // printf("Returning from sema_down\n");
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -240,7 +240,7 @@ thread_block (void)
 void
 thread_unblock (struct thread *t) 
 {
-  printf("thread_unblock() called by thread %s on thread %s\n", running_thread()->name, t->name);
+  // printf("thread_unblock() called by thread %s on thread %s\n", running_thread()->name, t->name);
   //print_ready_list();
   enum intr_level old_level;
 
@@ -253,13 +253,13 @@ thread_unblock (struct thread *t)
   t->time_added_to_q = timer_ticks();
   list_sort(&ready_list, thread_priority_less, NULL);
   list_reverse(&ready_list);
-  print_ready_list();
+  // print_ready_list();
   /* preempt running thread if it is not at front of ready list*/
   if(t->priority > running_thread()->priority)
     thread_yield();
 
   // running_thread()->status = THREAD_READY;
-  t->status = THREAD_READY;
+  t->status = THREAD_READY;// Should this be set before calling yield?
   // schedule();
 
 
@@ -421,10 +421,10 @@ idle (void *idle_started_ UNUSED)
   // printf("Idle thread started\n");
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
-  printf("Idle thread calling sema_up()\n");
+  // printf("Idle thread calling sema_up()\n");
   sema_up (idle_started);
-  printf("Idle thread incremented sema\n");
-  printf("Semaphore now has %d waiters, and has a value of %d.\n\n", list_size(&idle_started->waiters), idle_started->value);
+  // printf("Idle thread incremented sema\n");
+  // printf("Semaphore now has %d waiters, and has a value of %d.\n\n", list_size(&idle_started->waiters), idle_started->value);
 
   for (;;) 
     {
@@ -605,11 +605,11 @@ schedule (void)
   }
   thread_schedule_tail (prev);
 
-  printf("\n\nScheduling...\n");
-  printf("Running thread: %s Priority: %d\n", cur->name, cur->priority); // The currently running thread. May have just been woken up at switch_threads()
-  printf("Next thread: %s Priority: %d\n", next->name, next->priority); // The thread that this thread woke up when it first called this function. No longer the running thread.
-  printf("Previous thread: %s Priority: %d\n", prev != NULL ? prev->name : "N/A", prev != NULL ? prev->priority : 0); // The thread that was running before this one.
-  print_ready_list();
+  // printf("\n\nScheduling...\n");
+  // printf("Running thread: %s Priority: %d\n", cur->name, cur->priority); // The currently running thread. May have just been woken up at switch_threads()
+  // printf("Next thread: %s Priority: %d\n", next->name, next->priority); // The thread that this thread woke up when it first called this function. No longer the running thread.
+  // printf("Previous thread: %s Priority: %d\n", prev != NULL ? prev->name : "N/A", prev != NULL ? prev->priority : 0); // The thread that was running before this one.
+  // print_ready_list();
 }
 
 /* Returns a tid to use for a new thread. */
