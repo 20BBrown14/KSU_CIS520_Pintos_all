@@ -246,12 +246,13 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // list_push_back (&ready_list, &t->elem);
   // added for project 1
-  t->time_added_to_q = timer_ticks();
-  list_sort(&ready_list, thread_priority_less, NULL);
-  list_reverse(&ready_list);
-  print_ready_list();
+  // t->time_added_to_q = timer_ticks();
+  // list_sort(&ready_list, thread_priority_less, NULL);
+  // list_reverse(&ready_list);
+  // print_ready_list();
+  list_insert_ordered(&ready_list, &t->elem, thread_priority_less, NULL);
   /* preempt running thread if it is not at front of ready list*/
   if(t->priority > running_thread()->priority)
     thread_yield();
@@ -331,11 +332,12 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
   {
-    list_push_back (&ready_list, &cur->elem);
+    // list_push_back (&ready_list, &cur->elem);
     // added for project 1
-    cur->time_added_to_q = timer_ticks();
-    list_sort(&ready_list, thread_priority_less, NULL);
-    list_reverse(&ready_list);
+    // cur->time_added_to_q = timer_ticks();
+    // list_sort(&ready_list, thread_priority_less, NULL);
+    // list_reverse(&ready_list);
+    list_insert_ordered(&ready_list, &cur->elem, thread_priority_less, NULL);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -626,26 +628,7 @@ static bool thread_priority_less (const struct list_elem *t1_, const struct list
   const struct thread *t1 = list_entry (t1_, struct thread, elem);
   const struct thread *t2 = list_entry (t2_, struct thread, elem);
 
-  if(t1->priority < t2->priority)
-  {
-    return true;
-  }
-  else if(t2->priority < t1->priority)
-  {
-    return false;
-  }
-  else /* Priority is equal */
-  {
-    if(t1->time_added_to_q > t2->time_added_to_q)
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-
-  }
+  return t1->priority > t2->priority;
 }
 
 static void print_ready_list(void)
