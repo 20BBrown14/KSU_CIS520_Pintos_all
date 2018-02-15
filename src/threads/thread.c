@@ -424,6 +424,7 @@ idle (void *idle_started_ UNUSED)
   printf("Idle thread calling sema_up()\n");
   sema_up (idle_started);
   printf("Idle thread incremented sema\n");
+  printf("Semaphore now has %d waiters, and has a value of %d.\n\n", list_size(&idle_started->waiters), idle_started->value);
 
   for (;;) 
     {
