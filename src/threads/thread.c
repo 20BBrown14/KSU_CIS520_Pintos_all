@@ -10,6 +10,7 @@
 #include "threads/palloc.h"
 #include "threads/switch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -69,7 +70,9 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-static bool maxThread(struct thread *t1, *t2);
+static bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
+            void *aux UNUSED);
+static void print_ready_list(void);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -108,13 +111,17 @@ thread_start (void)
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
+  printf("Creating Idle thread\n");
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+  printf("Idle thread created\n");
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
   /* Wait for the idle thread to initialize idle_thread. */
+  printf("Calling sema_down\n");
   sema_down (&idle_started);
+  printf("Returning from sema_down\n");
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -231,6 +238,8 @@ thread_block (void)
 void
 thread_unblock (struct thread *t) 
 {
+  printf("thread_unblock() called by thread %s on thread %s\n", running_thread()->name, t->name);
+  //print_ready_list();
   enum intr_level old_level;
 
   ASSERT (is_thread (t));
@@ -239,11 +248,17 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   // added for project 1
-  list_sort(&ready_list, maxThread, NULL);
-  // preempt running thread if it is not at front of ready list
-  running_thread()->status = THREAD_READY;
+  t->time_added_to_q = timer_ticks();
+  list_sort(&ready_list, thread_priority_less, NULL);
+  list_reverse(&ready_list);
+  print_ready_list();
+  /* preempt running thread if it is not at front of ready list*/
+  if(t->priority > running_thread()->priority)
+    thread_yield();
+
+  // running_thread()->status = THREAD_READY;
   t->status = THREAD_READY;
-  schedule();
+  // schedule();
 
 
   intr_set_level (old_level);
@@ -318,7 +333,9 @@ thread_yield (void)
   {
     list_push_back (&ready_list, &cur->elem);
     // added for project 1
-    list_sort(&ready_list, maxThread, NULL);
+    cur->time_added_to_q = timer_ticks();
+    list_sort(&ready_list, thread_priority_less, NULL);
+    list_reverse(&ready_list);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -399,9 +416,11 @@ thread_get_recent_cpu (void)
 static void
 idle (void *idle_started_ UNUSED) 
 {
+  // printf("Idle thread started\n");
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
   sema_up (idle_started);
+  printf("Idle thread incremented sema\n");
 
   for (;;) 
     {
@@ -601,31 +620,44 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 /* added for project 1 */
 /* needs to return a max based on priority and ticks from when added */
-static bool maxThread(struct thread *t1, *t2)
-  //pardon psuedo code
-  if (t1.priority < t2.priority)
+static bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
+            void *aux UNUSED) 
+{
+  const struct thread *t1 = list_entry (t1_, struct thread, elem);
+  const struct thread *t2 = list_entry (t2_, struct thread, elem);
+
+  if(t1->priority < t2->priority)
   {
-    // t1 is min
-    return false;
-  }
-  else if (t2 < t1)
-  {
-    // t2 is min
     return true;
   }
-  else //they must be equal
+  else if(t2->priority < t1->priority)
   {
-    if (t1->time_added_to_q < t2->time_added_to_q) // don't need to do this if sort is stable. assuming it's unstable
+    return false;
+  }
+  else /* Priority is equal */
+  {
+    if(t1->time_added_to_q > t2->time_added_to_q)
     {
-      // t1 was added to the ready queue before t2 and should remain in front of t2
-      // therefore t2 should be sorted as a "lower" priority
-      // since this sort it the min we should indicate that t2 is min here
-      return false;
-    }
-    else 
-    {
-      // t1 is min
       return true;
     }
+    else
+    {
+      return false;
+    }
+
   }
+}
+
+static void print_ready_list(void)
+{
+  struct list_elem *a = &ready_list.head;
+  struct list_elem *b = &ready_list.tail;
+
+  printf("*****Printing ready list*****\n");
+  if(list_empty(&ready_list))
+    printf("Ready list empty\n");
+  while ((a = list_next (a)) != b) 
+      printf("%s\n", list_entry(a, struct thread, elem)->name);
+  printf("*****End of ready list*****\n");
+}
       
