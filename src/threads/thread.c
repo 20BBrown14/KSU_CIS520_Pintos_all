@@ -421,6 +421,7 @@ idle (void *idle_started_ UNUSED)
   // printf("Idle thread started\n");
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
+  printf("Idle thread calling sema_up()\n");
   sema_up (idle_started);
   printf("Idle thread incremented sema\n");
 
@@ -598,7 +599,9 @@ schedule (void)
   ASSERT (is_thread (next));
 
   if (cur != next)
+  {
     prev = switch_threads (cur, next);
+  }
   thread_schedule_tail (prev);
 
   printf("\n\nScheduling...\n");
