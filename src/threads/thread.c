@@ -119,7 +119,7 @@ thread_start (void)
   intr_enable ();
 
   /* Wait for the idle thread to initialize idle_thread. */
-  printf("Calling sema_down\n");
+  printf("Thread %s calling sema_down\n", running_thread()->name);
   sema_down (&idle_started);
   printf("Returning from sema_down\n");
 }
@@ -220,6 +220,8 @@ thread_create (const char *name, int priority,
 void
 thread_block (void) 
 {
+  // printf("Thread %s blocked\n", running_thread()->name);
+  // print_ready_list();
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
@@ -590,6 +592,7 @@ schedule (void)
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
 
+
   ASSERT (intr_get_level () == INTR_OFF);
   ASSERT (cur->status != THREAD_RUNNING);
   ASSERT (is_thread (next));
@@ -597,6 +600,12 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
+
+  printf("\n\nScheduling...\n");
+  printf("Running thread: %s Priority: %d\n", cur->name, cur->priority);
+  printf("Next thread: %s Priority: %d\n", next->name, next->priority);
+  printf("Previous thread: %s Priority: %d\n", prev != NULL ? prev->name : "N/A", prev != NULL ? prev->priority : 0);
+  print_ready_list();
 }
 
 /* Returns a tid to use for a new thread. */
