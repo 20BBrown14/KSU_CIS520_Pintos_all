@@ -600,14 +600,14 @@ schedule (void)
 
   if (cur != next)
   {
-    prev = switch_threads (cur, next);
+    prev = switch_threads (cur, next); // Current and previous switched. Execution stops here and switches to a different thread with different variables, so all variables in this function have changed value.
   }
   thread_schedule_tail (prev);
 
   printf("\n\nScheduling...\n");
-  printf("Running thread: %s Priority: %d\n", cur->name, cur->priority);
-  printf("Next thread: %s Priority: %d\n", next->name, next->priority);
-  printf("Previous thread: %s Priority: %d\n", prev != NULL ? prev->name : "N/A", prev != NULL ? prev->priority : 0);
+  printf("Running thread: %s Priority: %d\n", cur->name, cur->priority); // The currently running thread. May have just been woken up at switch_threads()
+  printf("Next thread: %s Priority: %d\n", next->name, next->priority); // The thread that this thread woke up when it first called this function. No longer the running thread.
+  printf("Previous thread: %s Priority: %d\n", prev != NULL ? prev->name : "N/A", prev != NULL ? prev->priority : 0); // The thread that was running before this one.
   print_ready_list();
 }
 
