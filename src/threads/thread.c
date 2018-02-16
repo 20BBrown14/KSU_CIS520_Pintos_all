@@ -72,7 +72,7 @@ static tid_t allocate_tid (void);
 static bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
             void *aux UNUSED);
 static void print_ready_list(void);
-static void test_preempt (struct thread * t);
+static void try_preempt (struct thread * t);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -207,7 +207,7 @@ thread_create (const char *name, int priority,
   /* project 1 */
   /* inspired by ryantimwilson */
   enum intr_level old_level = intr_disable();
-  test_preempt(t);
+  try_preempt(t);
   intr_set_level(old_level);
 
   return tid;
@@ -366,6 +366,7 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  try_preempt(list_entry(list_front(&ready_list), struct thread, elem));
 }
 
 /* Returns the current thread's priority. */
@@ -644,18 +645,18 @@ static void print_ready_list(void)
 }
 /* Added for project 1 */
 /* Preempt if needed */
-static void test_preempt (struct thread * t)
+static void try_preempt (struct thread * t)
 {
   if(t->priority > running_thread()->priority)
   {
-    // if(intr_context())
-    // {
-    //   intr_yield_on_return();
-    // }
-    // else
-    // {
+    if(intr_context())
+    {
+      intr_yield_on_return();
+    }
+    else
+    {
       thread_yield();
-    // }
+    }
   } 
 }
       

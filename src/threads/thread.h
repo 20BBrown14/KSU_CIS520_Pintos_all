@@ -95,6 +95,7 @@ struct thread
     struct semaphore timer_sema;        /* used for blocking threads with a timer*/
     int64_t wakeup_time;                /* the time in ticks when a thread should wake up*/
     struct list_elem sleeping_elem;     /* a list element for the sleeping threads list*/  
+    struct list donor_list;             /* a list of donors which includes how much priority they donated. */
     
 
     /* Shared between thread.c and synch.c. */
@@ -108,6 +109,14 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+/* Added for project 1 */
+typedef struct donor
+{
+  struct thread *donor_thread;
+  int amt_donated;
+  struct list_elem elem;
+} donor;
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
