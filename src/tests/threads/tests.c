@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define DEBUG
+// #define DEBUG
 
 struct test 
   {

@@ -10,7 +10,6 @@
 #include "threads/palloc.h"
 #include "threads/switch.h"
 #include "threads/vaddr.h"
-#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -111,17 +110,13 @@ thread_start (void)
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
-  printf("Creating Idle thread\n");
   thread_create ("idle", PRI_MIN, idle, &idle_started);
-  printf("Idle thread created\n");
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
   /* Wait for the idle thread to initialize idle_thread. */
-  printf("Calling sema_down\n");
   sema_down (&idle_started);
-  printf("Returning from sema_down\n");
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -238,29 +233,20 @@ thread_block (void)
 void
 thread_unblock (struct thread *t) 
 {
-  printf("thread_unblock() called by thread %s on thread %s\n", running_thread()->name, t->name);
-  //print_ready_list();
   enum intr_level old_level;
 
   ASSERT (is_thread (t));
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  // list_push_back (&ready_list, &t->elem);
   // added for project 1
-  // t->time_added_to_q = timer_ticks();
-  // list_sort(&ready_list, thread_priority_less, NULL);
-  // list_reverse(&ready_list);
-  // print_ready_list();
   list_insert_ordered(&ready_list, &t->elem, thread_priority_less, NULL);
+
   /* preempt running thread if it is not at front of ready list*/
-  if(t->priority > running_thread()->priority)
-    thread_yield();
+  // if(t->priority > running_thread()->priority)
+  //   thread_yield();
 
-  // running_thread()->status = THREAD_READY;
   t->status = THREAD_READY;
-  // schedule();
-
 
   intr_set_level (old_level);
 }
@@ -332,11 +318,7 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
   {
-    // list_push_back (&ready_list, &cur->elem);
     // added for project 1
-    // cur->time_added_to_q = timer_ticks();
-    // list_sort(&ready_list, thread_priority_less, NULL);
-    // list_reverse(&ready_list);
     list_insert_ordered(&ready_list, &cur->elem, thread_priority_less, NULL);
   }
   cur->status = THREAD_READY;
@@ -422,7 +404,6 @@ idle (void *idle_started_ UNUSED)
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
   sema_up (idle_started);
-  printf("Idle thread incremented sema\n");
 
   for (;;) 
     {
