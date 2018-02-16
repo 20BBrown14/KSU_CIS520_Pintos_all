@@ -72,6 +72,7 @@ static tid_t allocate_tid (void);
 static bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
             void *aux UNUSED);
 static void print_ready_list(void);
+static void test_preempt (struct thread * t);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -203,6 +204,12 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  /* project 1 */
+  /* inspired by ryantimwilson */
+  enum intr_level old_level = intr_disable();
+  test_preempt(t);
+  intr_set_level(old_level);
+
   return tid;
 }
 
@@ -239,12 +246,23 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  // added for project 1
+  // added for project 1 - github.com/ryantimwilson/pintos-project-1
+  // ryantimwilson helped us realize to check if we are in an interrupt
   list_insert_ordered(&ready_list, &t->elem, thread_priority_less, NULL);
 
   /* preempt running thread if it is not at front of ready list*/
+  
   // if(t->priority > running_thread()->priority)
-  //   thread_yield();
+  // {
+  //   if(intr_context())
+  //   {
+  //     intr_yield_on_return();
+  //   }
+  //   else
+  //   {
+  //     thread_yield();
+  //   }
+  // } 
 
   t->status = THREAD_READY;
 
@@ -623,5 +641,21 @@ static void print_ready_list(void)
   while ((a = list_next (a)) != b) 
       printf("%s\n", list_entry(a, struct thread, elem)->name);
   printf("*****End of ready list*****\n");
+}
+/* Added for project 1 */
+/* Preempt if needed */
+static void test_preempt (struct thread * t)
+{
+  if(t->priority > running_thread()->priority)
+  {
+    // if(intr_context())
+    // {
+    //   intr_yield_on_return();
+    // }
+    // else
+    // {
+      thread_yield();
+    // }
+  } 
 }
       
