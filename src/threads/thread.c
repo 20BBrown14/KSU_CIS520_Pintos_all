@@ -72,7 +72,6 @@ static tid_t allocate_tid (void);
 static bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
             void *aux UNUSED);
 static void print_ready_list(void);
-static void try_preempt (struct thread * t);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -361,6 +360,45 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+/* Added for project 1 */
+/* donate priority from running thread to a thread holding a lock. */
+void thread_donate_priority (struct thread *donee_thread, struct lock * l)
+{
+  struct thread * donor_thread = thread_current();
+  int amount = donor_thread->priority - donee_thread->priority;
+  if(amount > 0)
+  {
+    struct donor donor;
+    donor.donor_thread = donor_thread;
+    donor.amt_donated = amount;
+
+    list_push_back(&l->donor_list, &donor.elem);
+
+
+    donee_thread->priority += amount;
+    donor_thread->priority -= amount;
+  }
+}
+
+/* Added for project 1 */
+/* return priority to all donors when releasing a lock */
+void thread_return_donations (struct lock *l)
+{
+  struct list donors = l->donor_list;
+  struct thread * donee_thread = thread_current();
+
+  while(!list_empty(&donors))
+  {
+    struct donor * donor = list_entry(list_pop_front(&donors), struct donor, elem);
+    struct thread * donor_thread = donor->donor_thread;
+
+    donor_thread->priority += donor->amt_donated;
+    donee_thread->priority -= donor->amt_donated;
+    
+    list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
+  }
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
@@ -645,7 +683,7 @@ static void print_ready_list(void)
 }
 /* Added for project 1 */
 /* Preempt if needed */
-static void try_preempt (struct thread * t)
+void try_preempt (struct thread * t)
 {
   if(t->priority > running_thread()->priority)
   {

@@ -177,6 +177,9 @@ lock_init (struct lock *lock)
 {
   ASSERT (lock != NULL);
 
+  /* Added for project 1 */
+  list_init(&lock->donor_list);     /* inits the list of donors for this lock */
+
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
 }
@@ -195,6 +198,14 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
+
+  /* Added for project 1 */
+  if(lock_try_acquire(lock))
+  {
+    return;
+  }
+  /* Donate priority */
+  thread_donate_priority(lock->holder, lock);
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
@@ -230,6 +241,8 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+
+  thread_return_donations(lock);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
