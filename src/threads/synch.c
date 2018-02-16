@@ -200,15 +200,14 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   /* Added for project 1 */
-  if(lock_try_acquire(lock))
+  if(!lock_try_acquire(lock))
   {
-    return;
-  }
-  /* Donate priority */
-  thread_donate_priority(lock->holder, lock);
+    /* Donate priority if the lock is being held */
+    thread_donate_priority(lock->holder, lock);
 
-  sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
+    sema_down (&lock->semaphore);
+    lock->holder = thread_current ();
+  }
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

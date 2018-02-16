@@ -362,7 +362,7 @@ thread_foreach (thread_action_func *func, void *aux)
 
 /* Added for project 1 */
 /* donate priority from running thread to a thread holding a lock. */
-void thread_donate_priority (struct thread *donee_thread, struct lock * l)
+void thread_donate_priority (struct thread *donee_thread, struct lock * lock)
 {
   struct thread * donor_thread = thread_current();
   int amount = donor_thread->priority - donee_thread->priority;
@@ -372,31 +372,33 @@ void thread_donate_priority (struct thread *donee_thread, struct lock * l)
     donor.donor_thread = donor_thread;
     donor.amt_donated = amount;
 
-    list_push_back(&l->donor_list, &donor.elem);
+    list_push_back(&lock->donor_list, &(donor.elem));
 
 
     donee_thread->priority += amount;
     donor_thread->priority -= amount;
+
+    list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
   }
 }
 
 /* Added for project 1 */
 /* return priority to all donors when releasing a lock */
-void thread_return_donations (struct lock *l)
+void thread_return_donations (struct lock *lock)
 {
-  struct list donors = l->donor_list;
+  struct list donor_list = lock->donor_list;
   struct thread * donee_thread = thread_current();
 
-  while(!list_empty(&donors))
+  while(!list_empty(&donor_list))
   {
-    struct donor * donor = list_entry(list_pop_front(&donors), struct donor, elem);
+    struct donor * donor = list_entry(list_pop_front(&donor_list), struct donor, elem);
     struct thread * donor_thread = donor->donor_thread;
 
     donor_thread->priority += donor->amt_donated;
     donee_thread->priority -= donor->amt_donated;
-    
-    list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
   }
+    
+  list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
