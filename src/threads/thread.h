@@ -25,6 +25,9 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+/* project 1 added macro TODO move to utilites maybe? */
+#define MAX_INT(a,b) ((a>b) ? a : b); 
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -95,7 +98,9 @@ struct thread
     struct semaphore timer_sema;        /* used for blocking threads with a timer*/
     int64_t wakeup_time;                /* the time in ticks when a thread should wake up*/
     struct list_elem sleeping_elem;     /* a list element for the sleeping threads list*/  
-    
+    int base_priority;                  /* the priority of the thread before it has been modified by lock donation */
+    struct list lock_list;              /* list of locks being held by this thread */
+
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. ?For ready queue OMGWTFBBQ BAD COMMENT!?! */
@@ -149,6 +154,12 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-void try_preempt (struct thread * t);
+/* Added for project 1 */
+void try_preempt (void);
+void print_ready_list(void);
+bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
+            void *aux UNUSED);
+bool lock_waiter_priorty_less (const struct list_elem *lock1_, const struct list_elem *lock2_,
+            void *aux UNUSED);
 
 #endif /* threads/thread.h */
