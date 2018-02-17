@@ -32,6 +32,10 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+
+static bool cond_waiter_priority_less (const struct list_elem *sema_elem1_, const struct list_elem *sema_elem2_,
+            void *aux UNUSED);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -361,8 +365,11 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (lock_held_by_current_thread (lock));
 
   if (!list_empty (&cond->waiters)) 
-    sema_up (&list_entry (list_pop_front (&cond->waiters),
-                          struct semaphore_elem, elem)->semaphore);
+  {
+    struct list_elem * max_elem = list_max(&cond->waiters, cond_waiter_priority_less, NULL);
+    list_remove(max_elem);
+    sema_up (&list_entry (max_elem,struct semaphore_elem, elem)->semaphore);
+  }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
@@ -379,4 +386,21 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+/* Added for project 1 */
+/* used with list_max to get waiter with highest prio on cond var */
+static bool cond_waiter_priority_less (const struct list_elem *sema_elem1_, const struct list_elem *sema_elem2_,
+            void *aux UNUSED) 
+{
+  const struct semaphore_elem *sema_elem1 = list_entry (sema_elem1_, struct semaphore_elem, elem);
+  const struct semaphore_elem *sema_elem2 = list_entry (sema_elem2_, struct semaphore_elem, elem);
+
+  struct semaphore sema1 = sema_elem1->semaphore;
+  struct semaphore sema2 = sema_elem2->semaphore;
+
+  struct thread *t1 = list_entry(list_front(&sema1.waiters), struct thread, elem);
+  struct thread *t2 = list_entry(list_front(&sema2.waiters), struct thread, elem);
+
+  return t1->priority < t2->priority;
 }
