@@ -346,17 +346,24 @@ thread_foreach (thread_action_func *func, void *aux)
 
 /* Added for project 1 */
 /* donate priority from running thread to a thread holding a lock. */
-void thread_donate_priority (struct thread *donee_thread, struct lock * lock)
+void thread_donate_priority (struct lock * lock)
 {
-  struct thread * donor_thread = thread_current();
-  if(donor_thread->priority > lock->highest_waiter_priority)
+  struct thread *donee_thread = lock->holder;
+  /* Check if we need to donate */
+  if(donee_thread->priority < lock->highest_waiter_priority)
   {
-    lock->highest_waiter_priority = donor_thread->priority;
-    if(donee_thread->priority < lock->highest_waiter_priority)
+    /* donate, promoting donee to the priority of its highest lock */
+    donee_thread->priority = lock->highest_waiter_priority;
+    // TODO: check if donee_thread is waiting on a lock. If so, recursivly call this function on that lock and its holder.
+    if(donee_thread->blocking_lock != NULL) /* The donee is also waiting on a lock. Donate to the thread that holds that */
     {
-      donee_thread->priority = lock->highest_waiter_priority;
-      list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
+      if(lock->highest_waiter_priority > donee_thread->blocking_lock->highest_waiter_priority)
+      {
+        donee_thread->blocking_lock->highest_waiter_priority = lock->highest_waiter_priority;
+      }
+      thread_donate_priority(donee_thread->blocking_lock);
     }
+    list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
   }
 }
 
@@ -531,6 +538,7 @@ init_thread (struct thread *t, const char *name, int priority)
   sema_init(&t->timer_sema,0);   /* init's the semaphore on this thread */
   list_init(&t->lock_list);
   t->base_priority = priority;
+  t->blocking_lock = NULL;
 
 
   old_level = intr_disable ();

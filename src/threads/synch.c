@@ -209,8 +209,6 @@ lock_acquire (struct lock *lock)
   /* Added for project 1 */
   if(!lock_try_acquire(lock))
   {
-    /* Donate priority to the lock holder if the lock is being held */
-    thread_donate_priority(lock->holder, lock);
     
     /* We are not a waiter yet, so get the highest waiter prio and compare with our own. Set lock value. */
     struct list_elem * highest_waiter_elem = list_min(&lock->semaphore.waiters, thread_priority_less, NULL); // TODO: Fix name. We are actually finding max, not min, but names are backwards
@@ -218,7 +216,12 @@ lock_acquire (struct lock *lock)
     lock->highest_waiter_priority = MAX_INT(highest_current_waiter_priority, t->priority);
 
 
+    /* Donate priority to the lock holder if the lock is being held */
+    thread_donate_priority(lock);
+
+    t->blocking_lock = lock; /* Keep track of the lock that we are waiting on. Allows other threads to give us priority in the case of nested donations */
     sema_down (&lock->semaphore);
+    t->blocking_lock = NULL;
     list_push_back(&t->lock_list, &lock->elem); /*added for project 1 - add to thread's list of locks*/
 
     /* We are no longer waiting, so update highest priority */

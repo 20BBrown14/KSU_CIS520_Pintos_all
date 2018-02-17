@@ -100,6 +100,7 @@ struct thread
     struct list_elem sleeping_elem;     /* a list element for the sleeping threads list*/  
     int base_priority;                  /* the priority of the thread before it has been modified by lock donation */
     struct list lock_list;              /* list of locks being held by this thread */
+    struct lock * blocking_lock;        /* the lock this thread is currently waiting on. if this thread is not waiting on a lock, should be null */
 
 
     /* Shared between thread.c and synch.c. */
@@ -144,7 +145,7 @@ void thread_foreach (thread_action_func *, void *);
 
 /* Added for project 1 */
 void thread_return_donations (struct lock *l);
-void thread_donate_priority (struct thread *donee, struct lock * l);
+void thread_donate_priority (struct lock * l);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
