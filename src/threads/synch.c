@@ -209,7 +209,7 @@ lock_acquire (struct lock *lock)
   /* Added for project 1 */
   if(!lock_try_acquire(lock))
   {
-    /* Donate priority if the lock is being held */
+    /* Donate priority to the lock holder if the lock is being held */
     thread_donate_priority(lock->holder, lock);
     
     /* We are not a waiter yet, so get the highest waiter prio and compare with our own. Set lock value. */
@@ -248,8 +248,10 @@ lock_try_acquire (struct lock *lock)
 
   success = sema_try_down (&lock->semaphore);
   if (success)
+  {
     list_push_back(&t->lock_list, &lock->elem); /*added for project 1 - add to thread's list of locks*/
     lock->holder = t;
+  }
   return success;
 }
 
