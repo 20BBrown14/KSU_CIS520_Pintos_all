@@ -703,6 +703,7 @@ void print_ready_list(void)
 /* Assumes ready list is sorted */
 void try_preempt (void)
 {
+  list_sort(&ready_list, thread_priority_less, NULL);
   if(list_empty(&ready_list))
   {
     return;
