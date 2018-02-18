@@ -35,6 +35,15 @@ Sam Eichorst sleichorst@ksu.edu
 
 >> A2: Briefly describe what happens in a call to your timer_sleep(),
 >> including the effects of the timer interrupt handler.
+When a thread calls timer_sleep(), it gives us the number of ticks 
+that it wants to sleep for. We use this and the current time to 
+determine what tick the thread should wake up on. We then add the
+thread to a list we keep of sleeping threads, and sort the list by
+order of when it should wake up, with threads that will wake up 
+sooner toward the front of the list. We then call sema_down() on that 
+thread's semaphore, which puts the thread thread to sleep. In 
+timer_interrupt, we check if any sleeping threads are ready to wake 
+up, and if there are, we call sema_up() on that thread's semaphore.
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
