@@ -72,8 +72,6 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      // list_insert_ordered(&ready_list, &t->elem, thread_priority_less, NULL);
-      // list_insert_ordered (&sema->waiters, &thread_current ()->elem, thread_priority_less, NULL);
       list_push_back(&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
@@ -216,7 +214,7 @@ lock_acquire (struct lock *lock)
   {
     
     /* We are not a waiter yet, so get the highest waiter prio and compare with our own. Set lock value. */
-    struct list_elem * highest_waiter_elem = list_max(&lock->semaphore.waiters, thread_priority_less, NULL); // TODO: Fix name. We are actually finding max, not min, but names are backwards
+    struct list_elem * highest_waiter_elem = list_max(&lock->semaphore.waiters, thread_priority_less, NULL);
     int highest_current_waiter_priority = list_entry(highest_waiter_elem, struct thread, elem)->priority; 
     lock->highest_waiter_priority = MAX_INT(highest_current_waiter_priority, t->priority);
 
@@ -230,7 +228,7 @@ lock_acquire (struct lock *lock)
     list_push_back(&t->lock_list, &lock->elem); /*added for project 1 - add to thread's list of locks*/
 
     /* We are no longer waiting, so update highest priority */
-    highest_waiter_elem = list_max(&lock->semaphore.waiters, thread_priority_less, NULL); // TODO: Fix name. We are actually finding max, not min, but names are backwards
+    highest_waiter_elem = list_max(&lock->semaphore.waiters, thread_priority_less, NULL);
     highest_current_waiter_priority = list_entry(highest_waiter_elem, struct thread, elem)->priority;
 
     lock->holder = t;
