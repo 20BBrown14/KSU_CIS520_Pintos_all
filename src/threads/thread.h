@@ -158,9 +158,11 @@ int thread_get_load_avg (void);
 /* Added for project 1 */
 void try_preempt (void);
 void print_ready_list(void);
-bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
+bool thread_priority_more (const struct list_elem *t1_, const struct list_elem *t2_,
             void *aux UNUSED);
 bool lock_waiter_priorty_less (const struct list_elem *lock1_, const struct list_elem *lock2_,
+            void *aux UNUSED);
+bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
             void *aux UNUSED);
 
 #endif /* threads/thread.h */

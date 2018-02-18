@@ -243,9 +243,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  // added for project 1 - github.com/ryantimwilson/pintos-project-1
-  // ryantimwilson helped us realize to check if we are in an interrupt
-  list_insert_ordered(&ready_list, &t->elem, thread_priority_less, NULL);
+  /* added for project 1 - github.com/ryantimwilson/pintos-project-1 */
+  /* ryantimwilson helped us realize to check if we are in an interrupt */
+  list_insert_ordered(&ready_list, &t->elem, thread_priority_more, NULL);
 
   t->status = THREAD_READY;
 
@@ -319,8 +319,8 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
   {
-    // added for project 1
-    list_insert_ordered(&ready_list, &cur->elem, thread_priority_less, NULL);
+    /* added for project 1 */
+    list_insert_ordered(&ready_list, &cur->elem, thread_priority_more, NULL);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -354,7 +354,6 @@ void thread_donate_priority (struct lock * lock)
   {
     /* donate, promoting donee to the priority of its highest lock */
     donee_thread->priority = lock->highest_waiter_priority;
-    // TODO: check if donee_thread is waiting on a lock. If so, recursivly call this function on that lock and its holder.
     if(donee_thread->blocking_lock != NULL) /* The donee is also waiting on a lock. Donate to the thread that holds that */
     {
       if(lock->highest_waiter_priority > donee_thread->blocking_lock->highest_waiter_priority)
@@ -363,7 +362,7 @@ void thread_donate_priority (struct lock * lock)
       }
       thread_donate_priority(donee_thread->blocking_lock);
     }
-    list_sort(&ready_list, thread_priority_less, NULL); /* sort the ready list since we have changed priorities */
+    list_sort(&ready_list, thread_priority_more, NULL); /* sort the ready list since we have changed priorities */
   }
 }
 
@@ -381,7 +380,7 @@ void thread_return_donations (struct lock *lock)
   donee_thread->priority = MAX_INT(highest_lock_priority, donee_thread->base_priority);
 
   /* sort the ready list since we have changed priorities */
-  list_sort(&ready_list, thread_priority_less, NULL); 
+  list_sort(&ready_list, thread_priority_more, NULL); 
 }
 
 /* added for project 1 - Returns the highest priority waiter on the highest priority lock*/
@@ -403,7 +402,7 @@ thread_set_priority (int new_priority)
   t->priority = MAX_INT (t->base_priority, get_highest_lock_waiter_priority());
 
   /* sort the ready list since we have changed priorities and try_preempt*/
-  list_sort(&ready_list, thread_priority_less, NULL); 
+  list_sort(&ready_list, thread_priority_more, NULL); 
   try_preempt();
 }
 
@@ -663,7 +662,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 /* added for project 1 */
 /* needs to return a max based on priority TODO MAYBE RENAME TO MAX  */
-bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
+bool thread_priority_more (const struct list_elem *t1_, const struct list_elem *t2_,
             void *aux UNUSED) 
 {
   const struct thread *t1 = list_entry (t1_, struct thread, elem);
@@ -671,6 +670,18 @@ bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *
    
   /* this is greater than not gt or equal to ensure oldest thread wins ties */
   return t1->priority > t2->priority;
+}
+
+
+/* added for project 1 */
+/* needs to return a min based on priority */
+bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
+            void *aux UNUSED) 
+{
+  const struct thread *t1 = list_entry (t1_, struct thread, elem);
+  const struct thread *t2 = list_entry (t2_, struct thread, elem);
+   
+  return t1->priority <= t2->priority;
 }
 
 /* Added for project 1 */
@@ -703,7 +714,7 @@ void print_ready_list(void)
 /* Assumes ready list is sorted */
 void try_preempt (void)
 {
-  list_sort(&ready_list, thread_priority_less, NULL);
+  list_sort(&ready_list, thread_priority_more, NULL);
   if(list_empty(&ready_list))
   {
     return;
