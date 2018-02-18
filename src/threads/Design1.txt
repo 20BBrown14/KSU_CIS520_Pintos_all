@@ -82,12 +82,30 @@ up, and if there are, we call sema_up() on that thread's semaphore.
 
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
+We sort the list of waiters on semaphores before we wake up sleeping 
+threads. Since locks are built on semaphores, this also ensures that
+threads are woken up from locks in the correct order. For condition 
+variables, we sort the list of semaphores associated with the condition
+variable to ensure the one associated with the highest priority thread
+is woken up first.
 
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
+When a high priority thread tries to acquire a lock that a lower priority
+thread holds, we check if the priority of the low priority thread is lower
+than that of the highest priority thread waiting on that lock. If this is
+the case, we set the low priority thread's priority to that of the highest
+priority thread waiting on the lock.
+In order to handle nested donation, we then check if the low priority 
+thread is also waiting on a lock. If so, we recursively call the donation
+function on the lock the lower priority thread is waiting on. This then 
+repeats the same process as when we initially acquire a lock.
 
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
+When a lock is released, the thread's priority is reset to the higher 
+of its base priority(without donation) or the priority of of the highest
+priority thread waiting on a lock that the thread still holds.
 
 ---- SYNCHRONIZATION ----
 
