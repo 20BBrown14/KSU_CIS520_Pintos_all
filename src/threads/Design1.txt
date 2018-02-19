@@ -6,9 +6,9 @@ CIS 520 - Programming Project #1
 
 >> Fill in the names and email addresses of your group members.
 
-Branden Brown bbrown14@ksu.edu
-Harold Vilander haroldvilander@ksu.edu
-Sam Eichorst sleichorst@ksu.edu
+Branden Brown: bbrown14@ksu.edu
+Harold Vilander: haroldvilander@ksu.edu
+Sam Eichorst: sleichorst@ksu.edu
 ...
 
 ---- PRELIMINARIES ----
@@ -20,15 +20,29 @@ Sam Eichorst sleichorst@ksu.edu
 >> preparing your submission, other than the Pintos documentation,
 >> course text, lecture notes, and course staff.
 
+https://github.com/ryantimwilson/Pintos-Project-1/tree/master/src
+
 
                  ALARM CLOCK
                  ===========
 
----- DATA STRUCTURES ----
+---- DATA STRUCTURES ----/
 
 >> A1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+Added to Thread Struct in thread.h
+struct semaphore timer_sema;        /* used for blocking threads with a timer*/
+    int64_t wakeup_time;                /* the time in ticks when a thread should wake up*/
+    struct list_elem sleeping_elem;     /* a list element for the sleeping threads list*/  
+    int base_priority;                  /* the priority of the thread before it has been modified by lock donation */
+    struct list lock_list;              /* list of locks being held by this thread */
+    struct lock * blocking_lock;        /* the lock this thread is currently waiting on. if this thread is not waiting on a lock, should be null */
+
+
+Added in timer.h
+struct list sleeping_threads;      /* Threads that are blocked for timers, maybe should be a static */
 
 
 ---- ALGORITHMS ----
@@ -48,21 +62,25 @@ up, and if there are, we call sema_up() on that thread's semaphore.
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
 
+In the timer interrupt we call our function check_sleeping_thread we try to minimize what needs done. We record the current time and go through the sleeping threads only until we find one that doesn't need woken up. 
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
-
+Each call will independently put the thread on the waiters list and sort that list. We also disable interrupts during adding to the list and sorting the list. 
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+
+In our preemption scheme we disable interrupts before we try any preemption. When we do try to preempt we make sure we are not in an interrupt (or wait for a currently running interrupt to finish) before yielding the CPU. Since the timer interrupt is an interrupt (duh) this should mean we avoid race conditions.
 
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> other designs that you considered?
+This is better than busy waiting since each thread will get off of the ready list and not waste time on the CPU while it sleeps.
 
 
 
@@ -75,8 +93,15 @@ up, and if there are, we call sema_up() on that thread's semaphore.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
->> B2: Explain the data structure used to track priority donation.
+Added to lock struct in synch.h
+    struct list_elem elem;      /* Used to store on list of held locks for a thread */
+    int highest_waiter_priority;/* the priority of waiter thread with highest priority */
 
+>> B2: Explain the data structure used to track priority donation.
+	The lock struct has a list_elem which is used to keep of the
+Waiters for that lock, and also a highest_water_priority property which
+Keeps track of the highest priority of the thread that is waiting on that lock.
+This allows up to donate properly so we can preempt whatever thread holds this.
 
 ---- ALGORITHMS ----
 
@@ -111,13 +136,15 @@ priority thread waiting on a lock that the thread still holds.
 
 >> B6: Describe a potential race in thread_set_priority() and explain
 >> how your implementation avoids it.  Can you use a lock to avoid
->> this race?
+>> this race? 
+After setting the priority of a thread to something higher, and if it needs to be preempted, there could be a potential race condition when yielding the CPU to this new process if there is an interrupt running and we are trying to kick it off the CPU. We avoid this by only trying to yield the CPU if we are not currently in an interrupt, if we are we wait for it to be done and then yield.
 
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
-
+Another design we had considered was to have donee threads keep track of what threads have donated to them and then when locks are released to return donations. We abandoned this because it didn’t allow us to keep track of what threads donated for what locks, so when we released a lock we returned all donations instead of just the ones for that lock. Our current design avoids this issue.
+Also, when a thread donated to a thread we actually decreased the priority of the donating thread and blocked it. This was unnecessary as the thread is blocked and not on the ready list anyway so we didn’t have to worry about that. It only added complexity to the lock_release and related functions with no efficiency or algorithm requirements.
 
               ADVANCED SCHEDULER [EXTRA CREDIT]
               =================================
@@ -162,4 +189,5 @@ ticks   A   B   C   A   B   C   to run
 >> disadvantages in your design choices.  If you were to have extra
 >> time to work on this part of the project, how might you choose to
 >> refine or improve your design?
+
 
