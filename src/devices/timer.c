@@ -104,14 +104,15 @@ timer_sleep (int64_t ticks)
   struct thread * t = thread_current();
   t->wakeup_time = start + ticks;
 
+  enum intr_level old_level = intr_disable (); /* disable interrupts while adding to sorted wait list */
   list_push_back(&sleeping_threads, &(t->sleeping_elem)); /* add to list */
   list_sort(&sleeping_threads, wake_time_less, NULL); /* sort the list using less function defined below*/
-
+  intr_set_level (old_level);
   
   ASSERT (intr_get_level () == INTR_ON);
   sema_down(&(t->timer_sema)); /* parenthesis are fun, NO ORANGES FOR YOU */ 
 
-
+ 
   /* removed for project 1 replaced by above
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks)
