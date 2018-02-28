@@ -17,7 +17,19 @@ struct file
 struct file *
 file_open (struct inode *inode) 
 {
+  /*P2*/
+  /* Added for debugging */
+  if(inode == NULL)
+  {
+    printf("Inode NULL\n");
+  }
   struct file *file = calloc (1, sizeof *file);
+  /*P2*/
+  /* Added for debugging */
+  if(file == NULL)
+  {
+    printf("File NULL\n");
+  }
   if (inode != NULL && file != NULL)
     {
       file->inode = inode;

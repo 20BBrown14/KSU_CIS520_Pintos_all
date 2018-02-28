@@ -3,6 +3,7 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "devices/shutdown.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -16,15 +17,17 @@ static void
 syscall_handler (struct intr_frame *f) 
 { /* Added for project 2 */
  //void *esp = f->esp;
- int32_t syscall_num = f->esp;
-
+ int32_t * syscall_num = (int32_t *)f->esp;
+ //printf("System Call Number: %d\n", *syscall_num);
  //void *arg1 = *esp+4;
  //void *arg2 = *esp+8;
  
- switch(syscall_num)
+ switch(*syscall_num)
  {
     case SYS_HALT:
+      printf ("%s: exit(%d)\n", "thread", 2);
       shutdown_power_off();
+      
       break;
     case SYS_EXIT:
       break;
@@ -51,7 +54,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CLOSE:
       break;
     default:
-      printf("***SYSTEM CALL ERROR***");
+      printf("***SYSTEM CALL ERROR***\n");
       break;
 
  }
