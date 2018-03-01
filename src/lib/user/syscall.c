@@ -1,5 +1,6 @@
 #include <syscall.h>
 #include "../syscall-nr.h"
+#include <stdio.h>
 
 /* Invokes syscall NUMBER, passing no arguments, and returns the
    return value as an `int'. */
@@ -64,6 +65,7 @@
 void
 halt (void) 
 {
+  printf("*****PRINTING HOMIE*******");
   syscall0 (SYS_HALT);
   NOT_REACHED ();
 }
