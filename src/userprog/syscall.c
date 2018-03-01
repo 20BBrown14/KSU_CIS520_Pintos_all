@@ -18,18 +18,18 @@ syscall_handler (struct intr_frame *f)
 { /*P2*/
  //void *esp = f->esp;
  int syscall_num = * (int *) f->esp;
- printf("***System Call Number: %d***\n", syscall_num);
+ //printf("***System Call Number: %d***\n", syscall_num);
  //void *arg1 = *esp+4;
  //void *arg2 = *esp+8;
  
  switch(syscall_num)
  {
     case SYS_HALT:
-      printf ("***HALTING****\n");
+      //printf ("***HALTING****\n");
       shutdown_power_off();
       break;
     case SYS_EXIT:
-      printf("***EXITTING***\n");
+      //printf("***EXITTING***\n");
       //thread_exit();
       break;
     case SYS_EXEC:
@@ -47,7 +47,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ:
       break;
     case SYS_WRITE:
-      printf("***WRITING***\n");
+      //printf("***WRITING***\n");
       break;
     case SYS_SEEK:
       break;
@@ -56,7 +56,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CLOSE:
       break;
     default:
-      printf("***SYSTEM CALL ERROR***\n");
+     // printf("***SYSTEM CALL ERROR***\n");
       break;
 
  }

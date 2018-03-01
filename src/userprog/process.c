@@ -82,9 +82,13 @@ start_process (void *file_name_)
 
 
   /* If load failed, quit. */
+  printf("About to free this shit\n");
   palloc_free_page (file_name);
-  if (!success) 
+  printf("Freed that shit\n");
+  if (!success) {
+    printf("***In this other if statement***\n");
     thread_exit ();
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -92,7 +96,9 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+  printf("About to do some assembly MAGIC!\n");
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
+  printf("Assembly MAGIC worked, bitch\n"); //TODO: Assembly magic not working!
   NOT_REACHED ();
 }
 
@@ -343,17 +349,21 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   /*P2*/
   /* Setup_stack to take in save_ptr */
-  if (!setup_stack (esp, file_name))
+  if (!setup_stack (esp, file_name)){
+    printf("***In this if statement***");
     goto done;
+  }
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
+  printf("***Passed this start address thing***\n");
 
   success = true;
 
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+  printf("***Closed file just fine***\n");
   return success;
 }
 
@@ -470,31 +480,68 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp, char *file_name) 
 {
-  printf("***Setting up stack***\n");
   uint8_t *kpage;
   bool success = false;
   /*P2*/
-  char ** argv;
-  char * token;
-  char * save_ptr;
-  int i, j;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  printf("***kpage passed***\n");
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      printf("***install_page passed***\n");
       if (success)
       /*P2*/
         *esp = PHYS_BASE - 12;
       else
         palloc_free_page (kpage);
-        printf("***palloc_free_page passed***\n");
     }
   /*P2*/
   /* Get tokens from file_name */
-  i = 0;
+  char *token;
+  char **argv = malloc(2*sizeof(char*));
+  char ** save_ptr;
+  int i, argc = 0, argv_size = 2; /*Use argc to keep track of how many args*/
+  
+  /*Push args onto stack*/
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+        token = strtok_r (NULL, " ", &save_ptr))
+      {
+          *esp -= strlen(token) + 1; /*Posistion stack pointer to push token*/
+          argv[argc] = *esp; /*Set argv space*/
+          argc++;
+          if(argc >= argv_size) /*If we need more space in argv, do it.*/
+          {
+            argv_size *= 2;
+            argv = realloc(argv, argv_size*sizeof(char *)); /*Resizing*/
+          }
+          memcpy(*esp, token, strlen(token)+1); /*Push (copy) token to stack space*/
+          /*hex_dump(*esp,*esp,50, 1);*/ //Uncomment this to see hex_dump after each memcpy
+
+      }
+  argv[argc] = 0;
+  i = (size_t) *esp % 4;
+  if(i)
+  {
+    *esp -= i;
+    memcpy(*esp, &argv[argc], i);
+  }
+  for (i = argc; i >= 0; i--)
+  {
+    *esp -= sizeof(char *); /*Set stack pointer to reayd for push*/
+    memcpy(*esp, &argv[i], sizeof(char *)); /*push (copy) address of arg to stack*/
+  }
+  token = *esp;
+  *esp -= sizeof(char **);
+  memcpy(*esp, &token, sizeof(char **));
+  *esp -= sizeof(int);
+  memcpy(*esp, &argc, sizeof(int));
+  *esp -= sizeof(void *);
+  memcpy(*esp, &argv[argc], sizeof(void *));
+  free(argv);
+  hex_dump(*esp,*esp,50, 1);
+
+
+
+  /*
   argv = ((char **)malloc(128)); //TODO: Follow instructions regarding pintos limit
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr))
@@ -508,8 +555,22 @@ setup_stack (void **esp, char *file_name)
   {
     printf("Argument %d = %s\n", j, argv[j]);
   }
+  printf("***ESP %p***\n", esp);
+  for(j = i -1; j >= 0; j--)
+  {
+     //asm volatile ("push %[argv]\n\t");
+     *esp = (char *)*argv[j];
+     esp--;
+    printf("***j %d***\n", j);
+  }
+  printf("***ESP %p***\n", esp);
+  hex_dump(0,esp,20, 1);*/
+  if(success){
+    printf("***SUCCEEDED***\n");
+  }
   return success;
 }
+
 
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
