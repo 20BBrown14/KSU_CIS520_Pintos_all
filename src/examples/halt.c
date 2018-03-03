@@ -11,8 +11,11 @@
 int
 main (void)
 {
-  //P2//
-  printf("*****FUCKING PRINTS*******");
+  /*P2*/
+  /* using halt to test file create for now*/
+  /* TODO REMOVE MAKE COMMANDS */
+  char filename [7] = "asd.txt";
+  create(filename, 64);
   halt ();
   /* not reached */
 }

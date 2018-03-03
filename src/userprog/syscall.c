@@ -5,23 +5,28 @@
 #include "threads/thread.h"
 #include "devices/shutdown.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
+#include "filesys/filesys.h"
 
 static void syscall_handler (struct intr_frame *);
 static void is_valid_ptr (const void *vaddr);
-
+static struct lock fs_lock;
+static void* stack_pop(void ** esp, int bytes);
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&fs_lock);
 }
 
 static void
 syscall_handler (struct intr_frame *f) 
 { /*P2*/
- bool halt = false;
- static int count = 0;
  is_valid_ptr(f->esp);
- int syscall_num = * (int *) f->esp;
+ //int syscall_num = * (int *) f->esp;
+ void *stack = f->esp;
+ 
+ int syscall_num = *(int *) stack_pop(&stack,sizeof(int));
  switch(syscall_num)
  {
     case SYS_HALT:
@@ -36,8 +41,15 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_WAIT:
       break;
+
     case SYS_CREATE:
+      lock_acquire(&fs_lock);
+      char* file_name = *(char**)stack_pop(&stack,sizeof(char*));
+      int file_size =  *(int*) stack_pop(&stack,sizeof(int));
+      filesys_create(file_name, file_size); 
+      lock_release(&fs_lock);
       break;
+
     case SYS_REMOVE:
       break;
     case SYS_OPEN:
@@ -47,9 +59,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ:
       break;
     case SYS_WRITE:
-      hex_dump(f->esp+8,f->esp+8,16, 1);
-      printf("f->esp+8: %s\n", (char*)0xbffffefc);
-      ASSERT(count++<3);
+//    printf("f->esp+8: %s\n", (char*)0xbffffefc); 
       break;
     case SYS_SEEK:
       break;
@@ -58,7 +68,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CLOSE:
       break;
     default:
-     // printf("***SYSTEM CALL ERROR***\n");
+      printf("***SYSTEM CALL ERROR***\n");
       break;
 
  }
@@ -79,6 +89,14 @@ static void is_valid_ptr(const void *vaddr)
   
 }
 
+/*P2*/
+static void* stack_pop(void **esp, int bytes)
+{
+  void *data_popped= *esp;
+  *esp =  *esp + bytes;
+  return data_popped;
+}
+
 // added for project 2
 //System call numbers for reference
 //left numbers are the enum numbers for the sys_call, right side of numbers is the number of arguments for that call
@@ -95,3 +113,9 @@ static void is_valid_ptr(const void *vaddr)
 //  10 SYS_SEEK,                   /* Change position in a file. */         2
 //  11 SYS_TELL,                   /* Report current position in a file. */ 1
 //  12 SYS_CLOSE,                  /* Close a file. */                      1
+       
+//      filesys_create(*(char**)stack_pop(&stack,sizeof(char*)), *(int*) stack_pop(&stack,sizeof(int)));
+//      printf("filename:%s  \n",*(char**)stack_pop(&stack,sizeof(char*)));
+//      printf("size is %d\n",*(int*) stack_pop(&stack,sizeof(int)));
+
+     //hex_dump(stack,stack,40,1);
