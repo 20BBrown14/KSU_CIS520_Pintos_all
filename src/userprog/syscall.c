@@ -4,8 +4,10 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "devices/shutdown.h"
+#include "threads/vaddr.h"
 
 static void syscall_handler (struct intr_frame *);
+static void is_valid_ptr (const void *vaddr);
 
 void
 syscall_init (void) 
@@ -16,16 +18,14 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 { /*P2*/
- //void *esp = f->esp;
+ bool halt = false;
+ static int count = 0;
+ is_valid_ptr(f->esp);
  int syscall_num = * (int *) f->esp;
- //printf("***System Call Number: %d***\n", syscall_num);
- //void *arg1 = *esp+4;
- //void *arg2 = *esp+8;
- 
  switch(syscall_num)
  {
     case SYS_HALT:
-      //printf ("***HALTING****\n");
+      printf("Halting...............");
       shutdown_power_off();
       break;
     case SYS_EXIT:
@@ -47,7 +47,9 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ:
       break;
     case SYS_WRITE:
-      //printf("***WRITING***\n");
+      hex_dump(f->esp+8,f->esp+8,16, 1);
+      printf("f->esp+8: %s\n", (char*)0xbffffefc);
+      ASSERT(count++<3);
       break;
     case SYS_SEEK:
       break;
@@ -67,6 +69,15 @@ syscall_handler (struct intr_frame *f)
   */
 }
 
+
+static void is_valid_ptr(const void *vaddr)
+{
+  if(!is_user_vaddr(vaddr))
+  {
+    ASSERT(0);
+  }
+  
+}
 
 // added for project 2
 //System call numbers for reference

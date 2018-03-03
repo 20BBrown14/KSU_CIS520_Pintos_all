@@ -28,6 +28,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
+  printf("Executing proces\n");
   char *fn_copy;
   tid_t tid;
 
@@ -42,18 +43,14 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /*P2*/
-  file_name = strtok_r((char *) file_name, " ", &save_ptr); /* No body */
-  printf("File Name: %s\n", file_name);
+  file_name = strtok_r((char *) file_name, " ", &save_ptr);
 
 
   /* Create a new thread to execute FILE_NAME. */
   /*P2*/
   /* Editted for project 2 */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  printf("***PAST THREAD CREATE***\n");
-  printf("***%d***\n", tid);
   if (tid == TID_ERROR){
-    printf("***%d***\n", tid);
     palloc_free_page (fn_copy); 
   }
   return tid;
@@ -64,7 +61,6 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  printf("***STARTING PROCESS***");
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
@@ -76,17 +72,13 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   /*P2*/
   /* Modified for P2, added last arg */
-  printf("***ABOUT TO LOAD****");
   success = load (file_name, &if_.eip, &if_.esp);
   
 
 
   /* If load failed, quit. */
-  printf("About to free this shit\n");
   palloc_free_page (file_name);
-  printf("Freed that shit\n");
   if (!success) {
-    printf("***In this other if statement***\n");
     thread_exit ();
   }
 
@@ -96,9 +88,7 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-  printf("About to do some assembly MAGIC!\n");
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
-  printf("Assembly MAGIC worked, bitch\n"); //TODO: Assembly magic not working!
   NOT_REACHED ();
 }
 
@@ -114,7 +104,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  while(1);
 }
 
 /* Free the current process's resources. */
@@ -277,7 +267,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", just_file_name);
       goto done; 
     }
-   printf("***SHITS FUCKED0****\n");
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
   for (i = 0; i < ehdr.e_phnum; i++) 
@@ -285,13 +274,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
       struct Elf32_Phdr phdr;
 
       if (file_ofs < 0 || file_ofs > file_length (file)){
-        printf("***SHITS FUCKED 1****\n");
         goto done;
       }
       file_seek (file, file_ofs);
 
       if (file_read (file, &phdr, sizeof phdr) != sizeof phdr){
-        printf("***SHITS FUCKED2****\n");
         goto done;
       }
       file_ofs += sizeof phdr;
@@ -307,7 +294,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
         case PT_DYNAMIC:
         case PT_INTERP:
         case PT_SHLIB:
-          printf("***SHITS FUCKED3****\n");
           goto done;
         case PT_LOAD:
           if (validate_segment (&phdr, file)) 
@@ -319,6 +305,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
               uint32_t read_bytes, zero_bytes;
               if (phdr.p_filesz > 0)
                 {
+
                   /* Normal segment.
                      Read initial part from disk and zero the rest. */
                   read_bytes = page_offset + phdr.p_filesz;
@@ -334,36 +321,30 @@ load (const char *file_name, void (**eip) (void), void **esp)
                 }
               if (!load_segment (file, file_page, (void *) mem_page,
                                  read_bytes, zero_bytes, writable)){
-                                   printf("***SHITS FUCKED4****\n");
-                goto done;
-                                 }
+                                  goto done;
+                                }
             }
           else{
-            printf("***SHITS FUCKED****5\n");
             goto done;
           }
           break;
         }
-    }
-
+      }
   /* Set up stack. */
   /*P2*/
   /* Setup_stack to take in save_ptr */
   if (!setup_stack (esp, file_name)){
-    printf("***In this if statement***");
     goto done;
   }
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
-  printf("***Passed this start address thing***\n");
-
   success = true;
 
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
-  printf("***Closed file just fine***\n");
+  palloc_free_page(just_file_name);
   return success;
 }
 
@@ -434,19 +415,19 @@ static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
               uint32_t read_bytes, uint32_t zero_bytes, bool writable) 
 {
+  int count = 0;
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
-
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
+      
       /* Calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
       /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
@@ -459,18 +440,17 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           return false; 
         }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
       /* Add the page to the process's address space. */
       if (!install_page (upage, kpage, writable)) 
         {
           palloc_free_page (kpage);
           return false; 
         }
-
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
+      count++;
     }
   return true;
 }
@@ -488,14 +468,16 @@ setup_stack (void **esp, char *file_name)
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
+      if (success){
       /*P2*/
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
+      }
       else
         palloc_free_page (kpage);
     }
   /*P2*/
   /* Get tokens from file_name */
+  /*Inspiried by a Mr. RyanTimWilson*/
   char *token;
   char **argv = malloc(2*sizeof(char*));
   char ** save_ptr;
@@ -537,10 +519,8 @@ setup_stack (void **esp, char *file_name)
   *esp -= sizeof(void *);
   memcpy(*esp, &argv[argc], sizeof(void *));
   free(argv);
-  hex_dump(*esp,*esp,50, 1);
-
-
-
+  //hex_dump(*esp,*esp,60, 1);
+ //TODO delete this comment before submission
   /*
   argv = ((char **)malloc(128)); //TODO: Follow instructions regarding pintos limit
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
@@ -565,9 +545,6 @@ setup_stack (void **esp, char *file_name)
   }
   printf("***ESP %p***\n", esp);
   hex_dump(0,esp,20, 1);*/
-  if(success){
-    printf("***SUCCEEDED***\n");
-  }
   return success;
 }
 
