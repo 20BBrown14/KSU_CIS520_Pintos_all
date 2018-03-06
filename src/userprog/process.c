@@ -48,7 +48,7 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   /*P2*/
-  /* Editted for project 2 */
+  /* Edited for project 2 */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR){
     palloc_free_page (fn_copy); 
@@ -104,8 +104,36 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1);
-}
+  /*P2*/
+  struct list *children = &thread_current()->children;
+  struct list_elem *cur_elem;
+  struct thread *parent = thread_current();
+  for( cur_elem = children->head.next; cur_elem != &children->tail; cur_elem = cur_elem->next)
+  {
+    struct child *cur_child = list_entry(cur_elem, struct child, elem);
+
+    if(child_tid == cur_child->child_tid)
+    {
+      if(cur_child->t == NULL && cur_child->t->pagedir != NULL)
+      {
+        /*child is alive, wait for child to exit*/
+        parent->child_waiting_on = child_tid; /*set the child we are waiting on*/
+        sema_down(&parent->child_wait_sema);
+        parent->child_waiting_on = TID_ERROR; /* clear the child tid, since no longer waiting*/
+
+      }
+      /* child might have exited before we called wait */
+      /* we need to remove the child before returning */
+      list_remove(cur_elem);
+      /* in all cases we return child exit status */  
+      return cur_child->exit_status; 
+    }
+  }
+  /* child_tid was never a child or we have waited and */
+  /* removed it from the list, return -1 */
+  return -1;
+} /* process_wait() */
+
 
 /* Free the current process's resources. */
 void
@@ -113,6 +141,8 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -474,7 +504,8 @@ setup_stack (void **esp, char *file_name)
       }
       else
         palloc_free_page (kpage);
-    }
+      }
+
   /*P2*/
   /* Get tokens from file_name */
   /*Inspiried by a Mr. RyanTimWilson*/

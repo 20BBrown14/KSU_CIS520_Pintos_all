@@ -33,10 +33,25 @@ syscall_handler (struct intr_frame *f)
       printf("Halting...............");
       shutdown_power_off();
       break;
+
     case SYS_EXIT:
-      //printf("***EXITTING***\n");
-      //thread_exit();
-      break;
+        struct thread *t = thread_current();
+        
+        /*set exit status */ 
+        int exit_status = *(int *) stack_pop(&stack,sizeof(int));
+        t->our_child_self.exit_status = exit_status;
+
+        /* is our parent waiting on us? */
+        if (t->parent->child_waiting_on == t->tid) 
+        {
+          /* preemtion might occur here maybe it breaks shit*/
+          sema_up(&t->parent->child_wait_sema);
+        }
+        
+        /*lastly call process exit*/
+        process_exit();
+        break;
+
     case SYS_EXEC:
       break;
     case SYS_WAIT:
