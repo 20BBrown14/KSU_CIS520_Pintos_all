@@ -98,6 +98,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -539,10 +540,18 @@ init_thread (struct thread *t, const char *name, int priority)
   t->base_priority = priority;
   t->blocking_lock = NULL;
 
+  /*P2*/
+  list_int(&t->chlidren);               /* list of this threads children*/
+  t->parent = NULL;              /* our parent thread*/
+  t->child_waiting_on = TID_ERROR;  /*TODO: This is wrong as shit, dont use TID ERROR*/            /* the tid of the child we are waiting on */
+  sema_init(&t->child_wait_sema,0); 
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
+
+
+
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

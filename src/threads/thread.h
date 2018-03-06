@@ -104,7 +104,14 @@ struct thread
 
 
     /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. ?For ready queue OMGWTFBBQ BAD COMMENT!?! */
+    struct list_elem elem;              /* List element.  */
+
+    /*P2*/
+    struct list children;               /* list of this threads children*/
+    struct thread *parent;              /* our parent thread*/
+    tid_t child_waiting_on;              /* the tid of the child we are waiting on */
+    struct list_elem child_elem;        /* an element to put this thread in a children list */ 
+    struct semaphore child_wait_sema;   /* semaphore if this thread is waiting on a child*/
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
