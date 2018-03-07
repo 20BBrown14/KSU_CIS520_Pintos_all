@@ -28,6 +28,17 @@ typedef int tid_t;
 /* project 1 added macro TODO move to utilites maybe? */
 #define MAX_INT(a,b) ((a>b) ? a : b); 
 
+  /*P2*/
+  /* a struct definition for dealing with children */
+struct child 
+{
+    int exit_status;
+    tid_t child_tid;
+    struct list_elem elem;
+    struct thread *t;
+};
+
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -109,9 +120,9 @@ struct thread
     /*P2*/
     struct list children;               /* list of this threads children*/
     struct thread *parent;              /* our parent thread*/
-    tid_t child_waiting_on;              /* the tid of the child we are waiting on */
-    struct list_elem child_elem;        /* an element to put this thread in a children list */ 
+    tid_t child_waiting_on;             /* the tid of the child we are waiting on */
     struct semaphore child_wait_sema;   /* semaphore if this thread is waiting on a child*/
+    struct child our_child_self;        /* a reference to the child struct that holds our exit status... this was a real pita otherwise*/
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

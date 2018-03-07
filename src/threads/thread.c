@@ -199,6 +199,16 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+
+  /*P2*/
+  /* adding the new child to its parents list'o'children */
+  struct child new_child; /* child struct for the new thread*/
+  new_child.child_tid = tid;
+  new_child.exit_status = -1; /* this is the default incase the kernel kills the thread. i.e. the only time this should change is if the child calls exit()*/
+  list_push_back(&thread_current()->children, &new_child.elem);  /* add to list of children for the current thread */
+  t->our_child_self = new_child; /*give the child a reference to the child struct that references it... makes sys call exit much easier*/
+
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -541,17 +551,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->blocking_lock = NULL;
 
   /*P2*/
-  list_int(&t->chlidren);               /* list of this threads children*/
-  t->parent = NULL;              /* our parent thread*/
-  t->child_waiting_on = TID_ERROR;  /*TODO: This is wrong as shit, dont use TID ERROR*/            /* the tid of the child we are waiting on */
-  sema_init(&t->child_wait_sema,0); 
+  list_int(&t->children);            /* list of this threads children*/
+  t->parent = thread_current();      /* current thread is this new thread's parent*/
+  t->child_waiting_on = TID_ERROR;   /* the tid of the child we are waiting on TID_ERROR if parent is not waiting*/
+  sema_init(&t->child_wait_sema,0);  /* initialize the child wait sema as a mutex */
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
-
-
-
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
