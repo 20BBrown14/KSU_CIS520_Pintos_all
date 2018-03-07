@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+
 int
 main (void)
 {
@@ -15,7 +17,8 @@ main (void)
   /* using halt to test file create for now*/
   /* TODO REMOVE MAKE COMMANDS */
   char filename [7] = "asd.txt";
-  create(filename, 64);
+  //create(filename, 64);
+  write(1, filename, 8);
   halt ();
   /* not reached */
 }

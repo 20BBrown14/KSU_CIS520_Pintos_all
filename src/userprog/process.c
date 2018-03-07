@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -28,7 +29,6 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  printf("Executing proces\n");
   char *fn_copy;
   tid_t tid;
 
@@ -102,7 +102,7 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
   /*P2*/
   struct list *children = &thread_current()->children;
@@ -141,7 +141,6 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
 
 
   /* Destroy the current process's page directory and switch back
@@ -269,7 +268,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL){
-    printf("***Page directory is null***\n"); 
     goto done;
   }
   process_activate ();
@@ -550,32 +548,7 @@ setup_stack (void **esp, char *file_name)
   *esp -= sizeof(void *);
   memcpy(*esp, &argv[argc], sizeof(void *));
   free(argv);
-  //hex_dump(*esp,*esp,60, 1);
- //TODO delete this comment before submission
-  /*
-  argv = ((char **)malloc(128)); //TODO: Follow instructions regarding pintos limit
-  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
-        token = strtok_r (NULL, " ", &save_ptr))
-        {
-          printf("***Token %d: %s***\n", i, token);
-          argv[i] = token;
-          i++;
-        }
-  printf("%d\n", i);
-  for(j = i-1; j >= 0; j--)
-  {
-    printf("Argument %d = %s\n", j, argv[j]);
-  }
-  printf("***ESP %p***\n", esp);
-  for(j = i -1; j >= 0; j--)
-  {
-     //asm volatile ("push %[argv]\n\t");
-     *esp = (char *)*argv[j];
-     esp--;
-    printf("***j %d***\n", j);
-  }
-  printf("***ESP %p***\n", esp);
-  hex_dump(0,esp,20, 1);*/
+
   return success;
 }
 

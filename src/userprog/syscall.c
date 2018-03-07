@@ -8,6 +8,7 @@
 #include "threads/synch.h"
 #include "filesys/filesys.h"
 #include "process.h"
+#include "pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 static void is_valid_ptr (const void *vaddr);
@@ -28,17 +29,17 @@ syscall_handler (struct intr_frame *f)
  void *stack = f->esp;
  struct thread *t = thread_current();
  int exit_status;
+ tid_t wait_tid;
+ char * cmd_line;
  
  int syscall_num = *(int *) stack_pop(&stack,sizeof(int));
  switch(syscall_num)
  {
     case SYS_HALT:
-      printf("Halting...............");
       shutdown_power_off();
       break;
 
     case SYS_EXIT:
-        printf("Exiting...\n");
         /*set exit status */ 
         exit_status = *(int *) stack_pop(&stack,sizeof(int));
         t->our_child_self.exit_status = exit_status;
@@ -52,12 +53,16 @@ syscall_handler (struct intr_frame *f)
         
         /*lastly call process exit*/
         printf ("%s: exit(%d)\n", t->name, exit_status);
-        process_exit();
+        thread_exit();
         break;
 
     case SYS_EXEC:
+      cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
+      process_execute(cmd_line);
       break;
     case SYS_WAIT:
+      wait_tid = *(tid_t *) stack_pop(&stack, sizeof(tid_t));
+      f->eax = process_wait(wait_tid);
       break;
 
     case SYS_CREATE:
@@ -77,7 +82,23 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ:
       break;
     case SYS_WRITE:
-//    printf("f->esp+8: %s\n", (char*)0xbffffefc); 
+      if(0);
+      int fd = *(int *)stack_pop(&stack,sizeof(int));
+      void * buffer = *(void **)stack_pop(&stack,sizeof(void *));
+      unsigned size = *(unsigned *)stack_pop(&stack,sizeof(unsigned *));
+      if(!is_user_vaddr(buffer)){
+        printf("Not user vaddr!\n");
+        thread_exit();
+      }
+      void *pg_ptr = pagedir_get_page(t->pagedir, buffer);
+      if(pg_ptr == NULL){
+        printf("pg_ptr is null!\n");
+        thread_exit();
+      }
+      if(fd == 1){
+        putbuf((char *) pg_ptr, size);
+      }
+      f->eax = (uint32_t)size;
       break;
     case SYS_SEEK:
       break;

@@ -468,7 +468,6 @@ thread_get_recent_cpu (void)
 static void
 idle (void *idle_started_ UNUSED) 
 {
-  // printf("Idle thread started\n");
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
   sema_up (idle_started);

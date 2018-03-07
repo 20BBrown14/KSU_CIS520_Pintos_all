@@ -65,7 +65,6 @@
 void
 halt (void) 
 {
-  printf("*****PRINTING HOMIE*******");
   syscall0 (SYS_HALT);
   NOT_REACHED ();
 }
