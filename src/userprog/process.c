@@ -114,7 +114,7 @@ process_wait (tid_t child_tid UNUSED)
 
     if(child_tid == cur_child->child_tid)
     {
-      if(cur_child->t == NULL && cur_child->t->pagedir != NULL)
+      if(cur_child->t != NULL && cur_child->t->pagedir != NULL)
       {
         /*child is alive, wait for child to exit*/
         parent->child_waiting_on = child_tid; /*set the child we are waiting on*/

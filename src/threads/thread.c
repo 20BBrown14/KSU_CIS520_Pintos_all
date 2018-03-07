@@ -205,7 +205,8 @@ thread_create (const char *name, int priority,
   struct child new_child; /* child struct for the new thread*/
   new_child.child_tid = tid;
   new_child.exit_status = -1; /* this is the default incase the kernel kills the thread. i.e. the only time this should change is if the child calls exit()*/
-  list_push_back(&thread_current()->children, &new_child.elem);  /* add to list of children for the current thread */
+  new_child.t = t;
+  list_push_back(&running_thread()->children, &new_child.elem);  /* add to list of children for the current thread */
   t->our_child_self = new_child; /*give the child a reference to the child struct that references it... makes sys call exit much easier*/
 
 
@@ -552,7 +553,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   /*P2*/
   list_init(&t->children);            /* list of this threads children*/
-  t->parent = thread_current();      /* current thread is this new thread's parent*/
+  t->parent = running_thread();      /* current thread is this new thread's parent*/
   t->child_waiting_on = TID_ERROR;   /* the tid of the child we are waiting on TID_ERROR if parent is not waiting*/
   sema_init(&t->child_wait_sema,0);  /* initialize the child wait sema as a mutex */
 

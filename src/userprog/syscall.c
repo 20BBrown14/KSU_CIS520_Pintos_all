@@ -7,6 +7,7 @@
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "filesys/filesys.h"
+#include "process.h"
 
 static void syscall_handler (struct intr_frame *);
 static void is_valid_ptr (const void *vaddr);
@@ -37,7 +38,7 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_EXIT:
-        
+        printf("Exiting...\n");
         /*set exit status */ 
         exit_status = *(int *) stack_pop(&stack,sizeof(int));
         t->our_child_self.exit_status = exit_status;
@@ -50,6 +51,7 @@ syscall_handler (struct intr_frame *f)
         }
         
         /*lastly call process exit*/
+        printf ("%s: exit(%d)\n", t->name, exit_status);
         process_exit();
         break;
 
