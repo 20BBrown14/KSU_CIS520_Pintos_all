@@ -551,7 +551,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->blocking_lock = NULL;
 
   /*P2*/
-  list_int(&t->children);            /* list of this threads children*/
+  list_init(&t->children);            /* list of this threads children*/
   t->parent = thread_current();      /* current thread is this new thread's parent*/
   t->child_waiting_on = TID_ERROR;   /* the tid of the child we are waiting on TID_ERROR if parent is not waiting*/
   sema_init(&t->child_wait_sema,0);  /* initialize the child wait sema as a mutex */

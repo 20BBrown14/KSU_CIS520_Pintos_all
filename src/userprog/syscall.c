@@ -25,6 +25,8 @@ syscall_handler (struct intr_frame *f)
  is_valid_ptr(f->esp);
  //int syscall_num = * (int *) f->esp;
  void *stack = f->esp;
+ struct thread *t = thread_current();
+ int exit_status;
  
  int syscall_num = *(int *) stack_pop(&stack,sizeof(int));
  switch(syscall_num)
@@ -35,10 +37,9 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_EXIT:
-        struct thread *t = thread_current();
         
         /*set exit status */ 
-        int exit_status = *(int *) stack_pop(&stack,sizeof(int));
+        exit_status = *(int *) stack_pop(&stack,sizeof(int));
         t->our_child_self.exit_status = exit_status;
 
         /* is our parent waiting on us? */
