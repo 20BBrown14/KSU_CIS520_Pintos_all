@@ -89,7 +89,6 @@ shutdown_power_off (void)
 {
   const char s[] = "Shutdown";
   const char *p;
-
 #ifdef FILESYS
   filesys_done ();
 #endif

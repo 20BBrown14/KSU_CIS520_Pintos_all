@@ -3,12 +3,13 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-#include "devices/shutdown.h"
+//#include "devices/shutdown.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "filesys/filesys.h"
 #include "process.h"
 #include "pagedir.h"
+#include "threads/init.h"
 
 static void syscall_handler (struct intr_frame *);
 static void is_valid_ptr (const void *vaddr);
@@ -31,30 +32,32 @@ syscall_handler (struct intr_frame *f)
  int exit_status;
  tid_t wait_tid;
  char * cmd_line;
+ char * file_name;
  
  int syscall_num = *(int *) stack_pop(&stack,sizeof(int));
  switch(syscall_num)
  {
     case SYS_HALT:
+      thread_exit();
       shutdown_power_off();
       break;
 
     case SYS_EXIT:
-        /*set exit status */ 
-        exit_status = *(int *) stack_pop(&stack,sizeof(int));
-        t->our_child_self.exit_status = exit_status;
+      /*set exit status */ 
+      exit_status = *(int *) stack_pop(&stack,sizeof(int));
+      t->our_child_self.exit_status = exit_status;
 
-        /* is our parent waiting on us? */
-        if (t->parent->child_waiting_on == t->tid) 
-        {
-          /* preemtion might occur here maybe it breaks shit*/
-          sema_up(&t->parent->child_wait_sema);
-        }
-        
-        /*lastly call process exit*/
-        printf ("%s: exit(%d)\n", t->name, exit_status);
-        thread_exit();
-        break;
+      /* is our parent waiting on us? */
+      if (t->parent->child_waiting_on == t->tid) 
+      {
+        /* preemtion might occur here maybe it breaks shit*/
+        sema_up(&t->parent->child_wait_sema);
+      }
+      
+      /*lastly call process exit*/
+      printf ("%s: exit(%d)\n", t->name, exit_status);
+      thread_exit();
+      break;
 
     case SYS_EXEC:
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
@@ -67,45 +70,75 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_CREATE:
       lock_acquire(&fs_lock);
-      char* file_name = *(char**)stack_pop(&stack,sizeof(char*));
+      file_name = *(char**)stack_pop(&stack,sizeof(char*));
       int file_size =  *(int*) stack_pop(&stack,sizeof(int));
       filesys_create(file_name, file_size); 
       lock_release(&fs_lock);
       break;
 
     case SYS_REMOVE:
+     /* lock_acquire(&fs_lock);
+      file_name = *(char**)stack_pop(&stack, sizeof(char*));
+      if(filesys_remove(file_name)){
+        f->eax = 1;
+        lock_release(&fs_lock);
+        break;
+      }
+      else{
+        thread_exit();
+      } */
+      printf("***REMOVING***\n");
       break;
+
     case SYS_OPEN:
+      /*lock_acquire(&fs_lock);
+      file_name = *(char**)stack_pop(&stack, sizeof(char*));
+      f->eax = filesys_open(file_name);
+      lock_release(&fs_lock);*/
+      printf("***OPENING***\n");
       break;
+
     case SYS_FILESIZE:
+      printf("***FILESIZE***\n");
       break;
+
     case SYS_READ:
+      printf("***READING***\n");
       break;
+
     case SYS_WRITE:
       if(0);
       int fd = *(int *)stack_pop(&stack,sizeof(int));
       void * buffer = *(void **)stack_pop(&stack,sizeof(void *));
       unsigned size = *(unsigned *)stack_pop(&stack,sizeof(unsigned *));
-      if(!is_user_vaddr(buffer)){
-        printf("Not user vaddr!\n");
+      ASSERT(is_user_vaddr(buffer));
+      /* if(!is_user_vaddr(buffer)){
+        ASSERT(0)
         thread_exit();
-      }
+      } */
       void *pg_ptr = pagedir_get_page(t->pagedir, buffer);
-      if(pg_ptr == NULL){
-        printf("pg_ptr is null!\n");
+      ASSERT(pg_ptr != NULL);
+      /*if(pg_ptr == NULL){
         thread_exit();
-      }
+      }*/
       if(fd == 1){
         putbuf((char *) pg_ptr, size);
       }
       f->eax = (uint32_t)size;
       break;
+
     case SYS_SEEK:
+     printf("***SEEKING***\n");
       break;
+
     case SYS_TELL:
+    printf("***TELLING***\n");
       break;
+
     case SYS_CLOSE:
+    printf("***CLOSING***\n");
       break;
+
     default:
       printf("***SYSTEM CALL ERROR***\n");
       break;

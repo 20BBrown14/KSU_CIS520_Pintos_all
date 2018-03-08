@@ -105,21 +105,28 @@ int
 process_wait (tid_t child_tid) 
 {
   /*P2*/
-  struct list *children = &thread_current()->children;
+  struct list *children_list = &thread_current()->children; //children for current thread
   struct list_elem *cur_elem;
-  struct thread *parent = thread_current();
-  for( cur_elem = children->head.next; cur_elem != &children->tail; cur_elem = cur_elem->next)
-  {
-    struct child *cur_child = list_entry(cur_elem, struct child, elem);
+  struct thread *parent_thread = thread_current(); //The current thread, the parent
 
-    if(child_tid == cur_child->child_tid)
+
+  //for( cur_elem = thread_current()->children.head.next; cur_elem != &thread_current()->children.tail; cur_elem = cur_elem->next) //Loop through children list
+  for( cur_elem = children_list->head.next; cur_elem != &children_list->tail; cur_elem = cur_elem->next) //Loop through children list
+  {
+     
+    struct child *cur_child = list_entry(cur_elem, struct child, elem); //Get child struct from current child list elem loop iteration
+    printf("child_tid=%d ; cur_child->child_tid=%d\n", child_tid, cur_child->child_tid);
+    printf("cur_child -> exit_status: %d\n", cur_child->exit_status);
+    if(child_tid == cur_child->child_tid) //Is this the child we are looking for?
     {
-      if(cur_child->t != NULL && cur_child->t->pagedir != NULL)
+      printf("Name: %d\n", parent_thread->name);
+      if(cur_child->t != NULL && cur_child->t->pagedir != NULL) //Is this child still alive?
       {
         /*child is alive, wait for child to exit*/
-        parent->child_waiting_on = child_tid; /*set the child we are waiting on*/
-        sema_down(&parent->child_wait_sema);
-        parent->child_waiting_on = TID_ERROR; /* clear the child tid, since no longer waiting*/
+        parent_thread->child_waiting_on = child_tid; /*set the child we are waiting on*/
+        printf("SLEEPING\n");
+        sema_down(&parent_thread->child_wait_sema); //Sleep the parent thread
+        parent_thread->child_waiting_on = TID_ERROR; /* clear the child tid, since no longer waiting*/
 
       }
       /* child might have exited before we called wait */
@@ -525,7 +532,7 @@ setup_stack (void **esp, char *file_name)
             argv = realloc(argv, argv_size*sizeof(char *)); /*Resizing*/
           }
           memcpy(*esp, token, strlen(token)+1); /*Push (copy) token to stack space*/
-          /*hex_dump(*esp,*esp,50, 1);*/ //Uncomment this to see hex_dump after each memcpy
+          
 
       }
   argv[argc] = 0;
@@ -548,7 +555,7 @@ setup_stack (void **esp, char *file_name)
   *esp -= sizeof(void *);
   memcpy(*esp, &argv[argc], sizeof(void *));
   free(argv);
-
+  //hex_dump(*esp,*esp,50, 1); //Uncomment this to see hex_dump after each memcpy
   return success;
 }
 

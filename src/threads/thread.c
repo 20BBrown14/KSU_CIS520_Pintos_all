@@ -203,10 +203,19 @@ thread_create (const char *name, int priority,
   /*P2*/
   /* adding the new child to its parents list'o'children */
   struct child new_child; /* child struct for the new thread*/
+  printf("Making child tid = %d\n", tid);
   new_child.child_tid = tid;
   new_child.exit_status = -1; /* this is the default incase the kernel kills the thread. i.e. the only time this should change is if the child calls exit()*/
   new_child.t = t;
+  t->parent = running_thread();
+
   list_push_back(&running_thread()->children, &new_child.elem);  /* add to list of children for the current thread */
+  printf("Running thread name: %s\n", running_thread()->name);
+  printf("Child thread name: %s\n", t->name);
+  struct list_elem *cur_elem = running_thread()->children.head.next;
+   struct child *cur_child = list_entry(cur_elem, struct child, elem);
+   printf("curchild_tid = %d\n", cur_child->child_tid);
+  printf("curchild_parent: %s\n", cur_child->t->name);
   t->our_child_self = new_child; /*give the child a reference to the child struct that references it... makes sys call exit much easier*/
 
 
