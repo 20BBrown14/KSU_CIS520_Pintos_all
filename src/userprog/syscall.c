@@ -48,6 +48,8 @@ syscall_handler (struct intr_frame *f)
       t->our_child_self.exit_status = exit_status;
 
       /* is our parent waiting on us? */
+      //printf("t->parent->child_waiting_on = %d ;  t->tid = %d\n", t->parent->child_waiting_on, t->tid);
+      printf ("%s: exit(%d)\n", t->name, exit_status);
       if (t->parent->child_waiting_on == t->tid) 
       {
         /* preemtion might occur here maybe it breaks shit*/
@@ -55,7 +57,7 @@ syscall_handler (struct intr_frame *f)
       }
       
       /*lastly call process exit*/
-      printf ("%s: exit(%d)\n", t->name, exit_status);
+      
       thread_exit();
       break;
 
@@ -87,7 +89,6 @@ syscall_handler (struct intr_frame *f)
       else{
         thread_exit();
       } */
-      printf("***REMOVING***\n");
       break;
 
     case SYS_OPEN:
@@ -95,15 +96,12 @@ syscall_handler (struct intr_frame *f)
       file_name = *(char**)stack_pop(&stack, sizeof(char*));
       f->eax = filesys_open(file_name);
       lock_release(&fs_lock);*/
-      printf("***OPENING***\n");
       break;
 
     case SYS_FILESIZE:
-      printf("***FILESIZE***\n");
       break;
 
     case SYS_READ:
-      printf("***READING***\n");
       break;
 
     case SYS_WRITE:
@@ -128,15 +126,12 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_SEEK:
-     printf("***SEEKING***\n");
       break;
 
     case SYS_TELL:
-    printf("***TELLING***\n");
       break;
 
     case SYS_CLOSE:
-    printf("***CLOSING***\n");
       break;
 
     default:

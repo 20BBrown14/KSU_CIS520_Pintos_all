@@ -21,6 +21,8 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static void remove_child_process (struct child *cp);
+static struct child * get_child_process(int tid);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -52,6 +54,8 @@ process_execute (const char *file_name)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR){
     palloc_free_page (fn_copy); 
+    /*P2*/
+    thread_exit();
   }
   return tid;
 }
@@ -104,41 +108,20 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid) 
 {
-  /*P2*/
-  struct list *children_list = &thread_current()->children; //children for current thread
-  struct list_elem *cur_elem;
-  struct thread *parent_thread = thread_current(); //The current thread, the parent
-
-
-  //for( cur_elem = thread_current()->children.head.next; cur_elem != &thread_current()->children.tail; cur_elem = cur_elem->next) //Loop through children list
-  for( cur_elem = children_list->head.next; cur_elem != &children_list->tail; cur_elem = cur_elem->next) //Loop through children list
+   struct child* cp = get_child_process(child_tid);
+  if(!cp)
   {
-     
-    struct child *cur_child = list_entry(cur_elem, struct child, elem); //Get child struct from current child list elem loop iteration
-    printf("child_tid=%d ; cur_child->child_tid=%d\n", child_tid, cur_child->child_tid);
-    printf("cur_child -> exit_status: %d\n", cur_child->exit_status);
-    if(child_tid == cur_child->child_tid) //Is this the child we are looking for?
-    {
-      printf("Name: %d\n", parent_thread->name);
-      if(cur_child->t != NULL && cur_child->t->pagedir != NULL) //Is this child still alive?
-      {
-        /*child is alive, wait for child to exit*/
-        parent_thread->child_waiting_on = child_tid; /*set the child we are waiting on*/
-        printf("SLEEPING\n");
-        sema_down(&parent_thread->child_wait_sema); //Sleep the parent thread
-        parent_thread->child_waiting_on = TID_ERROR; /* clear the child tid, since no longer waiting*/
-
-      }
-      /* child might have exited before we called wait */
-      /* we need to remove the child before returning */
-      list_remove(cur_elem);
-      /* in all cases we return child exit status */  
-      return cur_child->exit_status; 
-    }
+    return -1;
   }
-  /* child_tid was never a child or we have waited and */
-  /* removed it from the list, return -1 */
-  return -1;
+  //while(!cp->has_exitted){
+  //  barrier();
+  //}
+  thread_current()->child_waiting_on = child_tid;
+  sema_down(&thread_current()->child_wait_sema);
+  thread_current()->child_waiting_on = TID_ERROR;
+  int status = cp->exit_status;
+  remove_child_process(cp);
+  return status;
 } /* process_wait() */
 
 
@@ -148,7 +131,10 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
+  /*P2*/
+  //if(thread_alive(cur->parent->tid)){
+  //cur->our_child_self.has_exitted = true;
+  //}
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -578,4 +564,26 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+static struct child * get_child_process(int tid)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+
+  for(e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e))
+  {
+    struct child *cp = list_entry(e, struct child, child_elem);
+    if(tid == cp->child_tid)
+    {
+      return cp;
+    }
+  }
+  return NULL;
+}
+
+static void remove_child_process (struct child *cp)
+{
+  list_remove(&cp->child_elem);
+  //free(cp);
 }

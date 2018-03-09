@@ -34,8 +34,8 @@ struct child
 {
     int exit_status;
     tid_t child_tid;
-    struct list_elem elem;
     struct thread *t;
+    struct list_elem child_elem;
 };
 
 
