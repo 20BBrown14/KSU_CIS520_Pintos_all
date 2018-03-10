@@ -60,6 +60,7 @@ syscall_handler (struct intr_frame *f)
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
       f->eax = process_execute((char*)va_to_pa((void*)cmd_line));
       break;
+      
     case SYS_WAIT:
       wait_tid = *(tid_t *) stack_pop(&stack, sizeof(tid_t));
       f->eax = process_wait(wait_tid);
@@ -68,7 +69,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CREATE:
       lock_acquire(&fs_lock);
       file_name = *(char**)stack_pop(&stack,sizeof(char*));
-      is_valid_ptr((char*)file_name);
+      is_valid_ptr(file_name);
       int file_size =  *(int*) stack_pop(&stack,sizeof(int));
       f->eax = !!filesys_create((char*)va_to_pa((void*)file_name), file_size); 
       lock_release(&fs_lock);
@@ -88,10 +89,11 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_OPEN:
-      /*lock_acquire(&fs_lock);
+      lock_acquire(&fs_lock);
       file_name = *(char**)stack_pop(&stack, sizeof(char*));
-      f->eax = filesys_open(file_name);
-      lock_release(&fs_lock);*/
+      is_valid_ptr(file_name);
+      f->eax = (uint32_t)filesys_open(file_name);
+      lock_release(&fs_lock);
       break;
 
     case SYS_FILESIZE:
