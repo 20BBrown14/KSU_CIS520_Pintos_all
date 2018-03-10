@@ -108,7 +108,9 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid) 
 {
-   struct child* cp = get_child_process(child_tid);
+  // printf("Tid we want to wait on: %d\n", child_tid);
+  struct child* cp = get_child_process(child_tid);
+  // printf("Tid of child we got: %d\n", cp != NULL ? cp->child_tid : -5);
   if(!cp)
   {
     return -1;
@@ -585,5 +587,4 @@ static struct child * get_child_process(int tid)
 static void remove_child_process (struct child *cp)
 {
   list_remove(&cp->child_elem);
-  //free(cp);
 }
