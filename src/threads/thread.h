@@ -5,6 +5,8 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/synch.h"
+#include "malloc.h"
+
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -28,6 +30,12 @@ typedef int tid_t;
 /* project 1 added macro TODO move to utilites maybe? */
 #define MAX_INT(a,b) ((a>b) ? a : b); 
 
+/*P2*/
+enum load_status  {
+  NOT_LOADED,
+  LOAD_FAILED,
+  LOAD_SUCCESS
+};
   /*P2*/
   /* a struct definition for dealing with children */
 struct child 
@@ -36,8 +44,8 @@ struct child
     tid_t child_tid;
     struct thread *t;
     struct list_elem child_elem;
+    enum load_status load_success;
 };
-
 
 /*P2*/
 /* a struct for holding info about a file that the thread has open*/
@@ -131,7 +139,7 @@ struct thread
     struct thread *parent;              /* our parent thread*/
     tid_t child_waiting_on;             /* the tid of the child we are waiting on */
     struct semaphore child_wait_sema;   /* semaphore if this thread is waiting on a child*/
-    struct child our_child_self;        /* a reference to the child struct that holds our exit status... this was a real pita otherwise*/
+    struct child *our_child_self;        /* a reference to the child struct that holds our exit status... this was a real pita otherwise*/
 
     /*P2*/
     /*files stuff */

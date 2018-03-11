@@ -15,11 +15,11 @@
 /* Magic number borrowed from ryantimwilson */
 #define VA_BOTTOM (void*)0x08048000
 
+//static struct child * get_child(int tid);
 static void syscall_handler (struct intr_frame *);
 static void is_valid_ptr (const void *vaddr);
 static struct lock fs_lock;
 static void* stack_pop(void ** esp, int bytes);
-static void sys_exit(int exit_status);
 static void * va_to_pa(void * va);
 static int *init_thread_file_struct(struct file * f);
 void
@@ -55,13 +55,32 @@ syscall_handler (struct intr_frame *f)
       
       sys_exit(exit_status);
 
+
       break;
 
     case SYS_EXEC:
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
       is_valid_ptr(cmd_line); 
-      f->eax = process_execute((char*)va_to_pa((void*)cmd_line));
+      int tid = process_execute((char*)va_to_pa((void*)cmd_line));
+      struct child * child_to_exec;
+      child_to_exec = get_child_process(tid);
+
+      ASSERT(child_to_exec != NULL);  
+
+      while(child_to_exec->load_success == NOT_LOADED)
+      {
+        thread_yield();
+      }
+      if(child_to_exec->load_success == LOAD_FAILED)
+      {
+        tid = TID_ERROR; 
+
+      }
+
+
+      f->eax = tid;
       break;
+
       
     case SYS_WAIT:
       wait_tid = *(tid_t *) stack_pop(&stack, sizeof(tid_t));
@@ -170,11 +189,11 @@ static void* stack_pop(void **esp, int bytes)
 }
 
 /*P2*/
-static void sys_exit(int exit_status)
+void sys_exit(int exit_status)
 {
   struct thread *t = thread_current();
 
-  t->our_child_self.exit_status = exit_status;
+  t->our_child_self->exit_status = exit_status;
 
   /* is our parent waiting on us? */
   //printf("t->parent->child_waiting_on = %d ;  t->tid = %d\n", t->parent->child_waiting_on, t->tid);
@@ -239,3 +258,20 @@ static int *init_thread_file_struct(struct file * file_struct)
 //      printf("size is %d\n",*(int*) stack_pop(&stack,sizeof(int)));
 
      //hex_dump(stack,stack,40,1);
+/*
+static struct child * get_child(int tid)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+
+  for(e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e))
+  {
+    struct child *cp = list_entry(e, struct child, child_elem);
+    if(tid == cp->child_tid)
+    {
+      return cp;
+    }
+  }
+  return NULL;
+}
+*/

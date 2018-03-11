@@ -2,5 +2,5 @@
 *.o
 *.a
 tests/stage/
-examples/libc.a
+/src/examples/libc.a
 *.swp

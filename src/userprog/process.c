@@ -21,7 +21,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static struct child * get_child_process(int tid);
+
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -77,11 +77,13 @@ start_process (void *file_name_)
   /*P2*/
   /* Modified for P2, added last arg */
   success = load (file_name, &if_.eip, &if_.esp);
-  
+  thread_current()->our_child_self->load_success = (success) ? LOAD_SUCCESS : LOAD_FAILED;
+
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) {
-    thread_exit ();
+    sys_exit(-1);
+//    thread_exit ();
   }
 
   /* Start the user process by simulating a return from an
@@ -119,6 +121,7 @@ process_wait (tid_t child_tid)
   thread_current()->child_waiting_on = TID_ERROR;
   int status = cp->exit_status;
   list_remove(&cp->child_elem);
+  free(cp);
   return status;
 } /* process_wait() */
 
@@ -564,7 +567,7 @@ install_page (void *upage, void *kpage, bool writable)
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
 
-static struct child * get_child_process(int tid)
+struct child * get_child_process(int tid)
 {
   struct thread *t = thread_current();
   struct list_elem *e;
