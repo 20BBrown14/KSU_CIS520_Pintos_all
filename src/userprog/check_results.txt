@@ -29,9 +29,9 @@ pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/sc-boundary-3 -a 
 perl -I../.. ../../tests/userprog/sc-boundary-3.ck tests/userprog/sc-boundary-3 tests/userprog/sc-boundary-3.result
 FAIL tests/userprog/sc-boundary-3
 Kernel panic in run: PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a308
+Call stack: 0xc002a338
 Translation of call stack:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/halt -a halt -- -q  -f run halt < /dev/null 2> tests/userprog/halt.errors > tests/userprog/halt.output
 perl -I../.. ../../tests/userprog/halt.ck tests/userprog/halt tests/userprog/halt.result
 pass tests/userprog/halt
@@ -74,6 +74,12 @@ pass tests/userprog/open-empty
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/open-null -a open-null -- -q  -f run open-null < /dev/null 2> tests/userprog/open-null.errors > tests/userprog/open-null.output
 perl -I../.. ../../tests/userprog/open-null.ck tests/userprog/open-null tests/userprog/open-null.result
 pass tests/userprog/open-null
+pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/open-bad-ptr -a open-bad-ptr -- -q  -f run open-bad-ptr < /dev/null 2> tests/userprog/open-bad-ptr.errors > tests/userprog/open-bad-ptr.output
+perl -I../.. ../../tests/userprog/open-bad-ptr.ck tests/userprog/open-bad-ptr tests/userprog/open-bad-ptr.result
+pass tests/userprog/open-bad-ptr
+pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/open-twice -a open-twice -p ../../tests/userprog/sample.txt -a sample.txt -- -q  -f run open-twice < /dev/null 2> tests/userprog/open-twice.errors > tests/userprog/open-twice.output
+perl -I../.. ../../tests/userprog/open-twice.ck tests/userprog/open-twice tests/userprog/open-twice.result
+pass tests/userprog/open-twice
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/close-normal -a close-normal -p ../../tests/userprog/sample.txt -a sample.txt -- -q  -f run close-normal < /dev/null 2> tests/userprog/close-normal.errors > tests/userprog/close-normal.output
 perl -I../.. ../../tests/userprog/close-normal.ck tests/userprog/close-normal tests/userprog/close-normal.result
 pass tests/userprog/close-normal
@@ -117,11 +123,11 @@ pass tests/userprog/write-normal
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/write-bad-ptr -a write-bad-ptr -p ../../tests/userprog/sample.txt -a sample.txt -- -q  -f run write-bad-ptr < /dev/null 2> tests/userprog/write-bad-ptr.errors > tests/userprog/write-bad-ptr.output
 perl -I../.. ../../tests/userprog/write-bad-ptr.ck tests/userprog/write-bad-ptr tests/userprog/write-bad-ptr.result
 FAIL tests/userprog/write-bad-ptr
-Kernel panic in run: PANIC at ../../userprog/syscall.c:120 in syscall_handler(): assertion `pg_ptr != NULL' failed.
-Call stack: 0xc002a308 0x5f6c6c61
+Kernel panic in run: PANIC at ../../userprog/syscall.c:143 in syscall_handler(): assertion `pg_ptr != NULL' failed.
+Call stack: 0xc002a338 0x5f6c6c61
 Translation of call stack:
 In kernel.o:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
 0x5f6c6c61: (unknown)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/write-boundary -a write-boundary -p ../../tests/userprog/sample.txt -a sample.txt -- -q  -f run write-boundary < /dev/null 2> tests/userprog/write-boundary.errors > tests/userprog/write-boundary.output
 perl -I../.. ../../tests/userprog/write-boundary.ck tests/userprog/write-boundary tests/userprog/write-boundary.result
@@ -148,9 +154,9 @@ pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/exec-bound-2 -a e
 perl -I../.. ../../tests/userprog/exec-bound-2.ck tests/userprog/exec-bound-2 tests/userprog/exec-bound-2.result
 FAIL tests/userprog/exec-bound-2
 Kernel panic in run: PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a308
+Call stack: 0xc002a338
 Translation of call stack:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/exec-bound-3 -a exec-bound-3 -- -q  -f run exec-bound-3 < /dev/null 2> tests/userprog/exec-bound-3.errors > tests/userprog/exec-bound-3.output
 perl -I../.. ../../tests/userprog/exec-bound-3.ck tests/userprog/exec-bound-3 tests/userprog/exec-bound-3.result
 FAIL tests/userprog/exec-bound-3
@@ -160,126 +166,19 @@ perl -I../.. ../../tests/userprog/exec-multiple.ck tests/userprog/exec-multiple 
 pass tests/userprog/exec-multiple
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/exec-missing -a exec-missing -- -q  -f run exec-missing < /dev/null 2> tests/userprog/exec-missing.errors > tests/userprog/exec-missing.output
 perl -I../.. ../../tests/userprog/exec-missing.ck tests/userprog/exec-missing tests/userprog/exec-missing.result
-FAIL tests/userprog/exec-missing
-Test output failed to match any acceptable form.
-
-Acceptable output:
-  (exec-missing) begin
-  load: no-such-file: open failed
-  (exec-missing) exec("no-such-file"): -1
-  no-such-file: exit(-1)
-  (exec-missing) end
-  exec-missing: exit(0)
-Differences in `diff -u' format:
-  (exec-missing) begin
-- load: no-such-file: open failed
-- (exec-missing) exec("no-such-file"): -1
-- no-such-file: exit(-1)
-+ (exec-missing) exec("no-such-file"): 4
-  (exec-missing) end
-  exec-missing: exit(0)
-+ load: no-such-file: open failed
-Acceptable output:
-  (exec-missing) begin
-  load: no-such-file: open failed
-  (exec-missing) exec("no-such-file"): -1
-  (exec-missing) end
-  exec-missing: exit(0)
-Differences in `diff -u' format:
-  (exec-missing) begin
-- load: no-such-file: open failed
-- (exec-missing) exec("no-such-file"): -1
-+ (exec-missing) exec("no-such-file"): 4
-  (exec-missing) end
-  exec-missing: exit(0)
-+ load: no-such-file: open failed
-Acceptable output:
-  (exec-missing) begin
-  load: no-such-file: open failed
-  no-such-file: exit(-1)
-  (exec-missing) exec("no-such-file"): -1
-  (exec-missing) end
-  exec-missing: exit(0)
-Differences in `diff -u' format:
-  (exec-missing) begin
-- load: no-such-file: open failed
-- no-such-file: exit(-1)
-- (exec-missing) exec("no-such-file"): -1
-+ (exec-missing) exec("no-such-file"): 4
-  (exec-missing) end
-  exec-missing: exit(0)
-+ load: no-such-file: open failed
-Acceptable output:
-  (exec-missing) begin
-  (exec-missing) exec("no-such-file"): -1
-  (exec-missing) end
-  exec-missing: exit(0)
-Differences in `diff -u' format:
-  (exec-missing) begin
-- (exec-missing) exec("no-such-file"): -1
-+ (exec-missing) exec("no-such-file"): 4
-  (exec-missing) end
-  exec-missing: exit(0)
-+ load: no-such-file: open failed
+pass tests/userprog/exec-missing
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/exec-bad-ptr -a exec-bad-ptr -- -q  -f run exec-bad-ptr < /dev/null 2> tests/userprog/exec-bad-ptr.errors > tests/userprog/exec-bad-ptr.output
 perl -I../.. ../../tests/userprog/exec-bad-ptr.ck tests/userprog/exec-bad-ptr tests/userprog/exec-bad-ptr.result
 pass tests/userprog/exec-bad-ptr
-pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/wait-simple -a wait-simple -p tests/userprog/child-simple -a child-simple -- -q  -f run wait-simple < /dev/null 2> tests/userprog/wait-simple.errors > tests/userprog/wait-simple.output
-perl -I../.. ../../tests/userprog/wait-simple.ck tests/userprog/wait-simple tests/userprog/wait-simple.result
-FAIL tests/userprog/wait-simple
-Test output failed to match any acceptable form.
-
-Acceptable output:
-  (wait-simple) begin
-  (child-simple) run
-  child-simple: exit(81)
-  (wait-simple) wait(exec()) = 81
-  (wait-simple) end
-  wait-simple: exit(0)
-Differences in `diff -u' format:
-  (wait-simple) begin
-  (child-simple) run
-  child-simple: exit(81)
-- (wait-simple) wait(exec()) = 81
-+ (wait-simple) wait(exec()) = -1073606678
-  (wait-simple) end
-  wait-simple: exit(0)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/wait-twice -a wait-twice -p tests/userprog/child-simple -a child-simple -- -q  -f run wait-twice < /dev/null 2> tests/userprog/wait-twice.errors > tests/userprog/wait-twice.output
 perl -I../.. ../../tests/userprog/wait-twice.ck tests/userprog/wait-twice tests/userprog/wait-twice.result
-FAIL tests/userprog/wait-twice
-Test output failed to match any acceptable form.
-
-Acceptable output:
-  (wait-twice) begin
-  (child-simple) run
-  child-simple: exit(81)
-  (wait-twice) wait(exec()) = 81
-  (wait-twice) wait(exec()) = -1
-  (wait-twice) end
-  wait-twice: exit(0)
-Differences in `diff -u' format:
-  (wait-twice) begin
-  (child-simple) run
-  child-simple: exit(81)
-- (wait-twice) wait(exec()) = 81
-+ (wait-twice) wait(exec()) = -1073606678
-  (wait-twice) wait(exec()) = -1
-  (wait-twice) end
-  wait-twice: exit(0)
-pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/wait-killed -a wait-killed -p tests/userprog/child-bad -a child-bad -- -q  -f run wait-killed < /dev/null 2> tests/userprog/wait-killed.errors > tests/userprog/wait-killed.output
-perl -I../.. ../../tests/userprog/wait-killed.ck tests/userprog/wait-killed tests/userprog/wait-killed.result
-FAIL tests/userprog/wait-killed
-Kernel panic in run: PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a308
-Translation of call stack:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+pass tests/userprog/wait-twice
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/wait-bad-pid -a wait-bad-pid -- -q  -f run wait-bad-pid < /dev/null 2> tests/userprog/wait-bad-pid.errors > tests/userprog/wait-bad-pid.output
 perl -I../.. ../../tests/userprog/wait-bad-pid.ck tests/userprog/wait-bad-pid tests/userprog/wait-bad-pid.result
 pass tests/userprog/wait-bad-pid
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/multi-recurse -a multi-recurse -- -q  -f run 'multi-recurse 15' < /dev/null 2> tests/userprog/multi-recurse.errors > tests/userprog/multi-recurse.output
 perl -I../.. ../../tests/userprog/multi-recurse.ck tests/userprog/multi-recurse tests/userprog/multi-recurse.result
-FAIL tests/userprog/multi-recurse
-run: wait(exec("multi-recurse")) returned -1073606678: FAILED
+pass tests/userprog/multi-recurse
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/multi-child-fd -a multi-child-fd -p ../../tests/userprog/sample.txt -a sample.txt -p tests/userprog/child-close -a child-close -- -q  -f run multi-child-fd < /dev/null 2> tests/userprog/multi-child-fd.errors > tests/userprog/multi-child-fd.output
 perl -I../.. ../../tests/userprog/multi-child-fd.ck tests/userprog/multi-child-fd tests/userprog/multi-child-fd.result
 FAIL tests/userprog/multi-child-fd
@@ -307,10 +206,7 @@ run: TIMEOUT after 60 seconds of host CPU time
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/bad-read2 -a bad-read2 -- -q  -f run bad-read2 < /dev/null 2> tests/userprog/bad-read2.errors > tests/userprog/bad-read2.output
 perl -I../.. ../../tests/userprog/bad-read2.ck tests/userprog/bad-read2 tests/userprog/bad-read2.result
 FAIL tests/userprog/bad-read2
-Kernel panic in run: PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a308
-Translation of call stack:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+run: TIMEOUT after 60 seconds of host CPU time
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/bad-write2 -a bad-write2 -- -q  -f run bad-write2 < /dev/null 2> tests/userprog/bad-write2.errors > tests/userprog/bad-write2.output
 perl -I../.. ../../tests/userprog/bad-write2.ck tests/userprog/bad-write2 tests/userprog/bad-write2.result
 FAIL tests/userprog/bad-write2
@@ -322,19 +218,11 @@ run: TIMEOUT after 60 seconds of host CPU time
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/bad-jump2 -a bad-jump2 -- -q  -f run bad-jump2 < /dev/null 2> tests/userprog/bad-jump2.errors > tests/userprog/bad-jump2.output
 perl -I../.. ../../tests/userprog/bad-jump2.ck tests/userprog/bad-jump2 tests/userprog/bad-jump2.result
 FAIL tests/userprog/bad-jump2
-Kernel panic in run: PANIC at ../../lib/kernel/list.c:84 in list_next(): assertion `is_head (elem) || is_interior (elem)' failed.
-Call stack: 0xc002a308 0x78656e5f
-Translation of call stack:
-In kernel.o:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
-0x78656e5f: (unknown)
+run: TIMEOUT after 60 seconds of host CPU time
 pintos -v -k -T 360 --bochs  --filesys-size=2 -p tests/userprog/no-vm/multi-oom -a multi-oom -- -q  -f run multi-oom < /dev/null 2> tests/userprog/no-vm/multi-oom.errors > tests/userprog/no-vm/multi-oom.output
 perl -I../.. ../../tests/userprog/no-vm/multi-oom.ck tests/userprog/no-vm/multi-oom tests/userprog/no-vm/multi-oom.result
 FAIL tests/userprog/no-vm/multi-oom
-Kernel panic in run: PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a308
-Translation of call stack:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+run: TIMEOUT after 360 seconds of host CPU time
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/filesys/base/lg-create -a lg-create -- -q  -f run lg-create < /dev/null 2> tests/filesys/base/lg-create.errors > tests/filesys/base/lg-create.output
 perl -I../.. ../../tests/filesys/base/lg-create.ck tests/filesys/base/lg-create tests/filesys/base/lg-create.result
 FAIL tests/filesys/base/lg-create
@@ -379,10 +267,10 @@ pintos -v -k -T 300 --bochs  --filesys-size=2 -p tests/filesys/base/syn-read -a 
 perl -I../.. ../../tests/filesys/base/syn-read.ck tests/filesys/base/syn-read tests/filesys/base/syn-read.result
 FAIL tests/filesys/base/syn-read
 Kernel panic in run: PANIC at ../../lib/kernel/list.c:84 in list_next(): assertion `is_head (elem) || is_interior (elem)' failed.
-Call stack: 0xc002a308 0x78656e5f
+Call stack: 0xc002a338 0x78656e5f
 Translation of call stack:
 In kernel.o:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
 0x78656e5f: (unknown)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/filesys/base/syn-remove -a syn-remove -- -q  -f run syn-remove < /dev/null 2> tests/filesys/base/syn-remove.errors > tests/filesys/base/syn-remove.output
 perl -I../.. ../../tests/filesys/base/syn-remove.ck tests/filesys/base/syn-remove tests/filesys/base/syn-remove.result
@@ -391,12 +279,10 @@ run: 78 bytes read starting at offset 0 in "deleteme" differ from expected: FAIL
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/filesys/base/syn-write -a syn-write -p tests/filesys/base/child-syn-wrt -a child-syn-wrt -- -q  -f run syn-write < /dev/null 2> tests/filesys/base/syn-write.errors > tests/filesys/base/syn-write.output
 perl -I../.. ../../tests/filesys/base/syn-write.ck tests/filesys/base/syn-write tests/filesys/base/syn-write.result
 FAIL tests/filesys/base/syn-write
-Kernel panic in run: PANIC at ../../lib/kernel/list.c:84 in list_next(): assertion `is_head (elem) || is_interior (elem)' failed.
-Call stack: 0xc002a308 0x78656e5f
+Kernel panic in run: PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0xc002a338
 Translation of call stack:
-In kernel.o:
-0xc002a308: debug_panic (.../../lib/kernel/debug.c:38)
-0x78656e5f: (unknown)
+0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
 pass tests/userprog/args-none
 pass tests/userprog/args-single
 pass tests/userprog/args-multiple
@@ -446,13 +332,13 @@ pass tests/userprog/exec-bound
 FAIL tests/userprog/exec-bound-2
 FAIL tests/userprog/exec-bound-3
 pass tests/userprog/exec-multiple
-FAIL tests/userprog/exec-missing
+pass tests/userprog/exec-missing
 pass tests/userprog/exec-bad-ptr
-FAIL tests/userprog/wait-simple
-FAIL tests/userprog/wait-twice
-FAIL tests/userprog/wait-killed
+pass tests/userprog/wait-simple
+pass tests/userprog/wait-twice
+pass tests/userprog/wait-killed
 pass tests/userprog/wait-bad-pid
-FAIL tests/userprog/multi-recurse
+pass tests/userprog/multi-recurse
 FAIL tests/userprog/multi-child-fd
 FAIL tests/userprog/rox-simple
 FAIL tests/userprog/rox-child
@@ -477,5 +363,5 @@ FAIL tests/filesys/base/sm-seq-random
 FAIL tests/filesys/base/syn-read
 FAIL tests/filesys/base/syn-remove
 FAIL tests/filesys/base/syn-write
-37 of 80 tests failed.
+32 of 80 tests failed.
 ../../tests/Make.tests:26: recipe for target 'check' failed

@@ -130,7 +130,7 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_WRITE:
-      if(0);
+    {
       int fd = *(int *)stack_pop(&stack,sizeof(int));
       void * buffer = *(void **)stack_pop(&stack,sizeof(void *));
       unsigned size = *(unsigned *)stack_pop(&stack,sizeof(unsigned *));
@@ -149,7 +149,7 @@ syscall_handler (struct intr_frame *f)
       }
       f->eax = (uint32_t)size;
       break;
-
+    }
     case SYS_SEEK:
       break;
 
