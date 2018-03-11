@@ -21,7 +21,6 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static void remove_child_process (struct child *cp);
 static struct child * get_child_process(int tid);
 
 /* Starts a new thread running a user program loaded from
@@ -57,6 +56,7 @@ process_execute (const char *file_name)
     /*P2*/
     thread_exit();
   }
+
   return tid;
 }
 
@@ -78,8 +78,6 @@ start_process (void *file_name_)
   /* Modified for P2, added last arg */
   success = load (file_name, &if_.eip, &if_.esp);
   
-
-
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) {
@@ -115,14 +113,12 @@ process_wait (tid_t child_tid)
   {
     return -1;
   }
-  //while(!cp->has_exitted){
-  //  barrier();
-  //}
+
   thread_current()->child_waiting_on = child_tid;
   sema_down(&thread_current()->child_wait_sema);
   thread_current()->child_waiting_on = TID_ERROR;
   int status = cp->exit_status;
-  remove_child_process(cp);
+  list_remove(&cp->child_elem);
   return status;
 } /* process_wait() */
 
@@ -584,7 +580,4 @@ static struct child * get_child_process(int tid)
   return NULL;
 }
 
-static void remove_child_process (struct child *cp)
-{
-  list_remove(&cp->child_elem);
-}
+

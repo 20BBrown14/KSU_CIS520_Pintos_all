@@ -1,5 +1,6 @@
 /src/utils/pintos-gdb
 *.o
+*.a
 tests/stage/
 examples/libc.a
 *.swp

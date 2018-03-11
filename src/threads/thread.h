@@ -39,6 +39,15 @@ struct child
 };
 
 
+/*P2*/
+/* a struct for holding info about a file that the thread has open*/
+struct an_open_file
+{
+  int file_descriptor; /* starting at 2*/
+  struct list_elem elem; 
+  struct file * the_file; /* a ptr to the file struct that describes this file*/
+};
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -123,6 +132,12 @@ struct thread
     tid_t child_waiting_on;             /* the tid of the child we are waiting on */
     struct semaphore child_wait_sema;   /* semaphore if this thread is waiting on a child*/
     struct child our_child_self;        /* a reference to the child struct that holds our exit status... this was a real pita otherwise*/
+
+    /*P2*/
+    /*files stuff */
+    struct list open_files; 
+    int next_file_descriptor;
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

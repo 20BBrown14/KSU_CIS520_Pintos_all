@@ -21,6 +21,7 @@ static struct lock fs_lock;
 static void* stack_pop(void ** esp, int bytes);
 static void sys_exit(int exit_status);
 static void * va_to_pa(void * va);
+static int *init_thread_file_struct(struct file * f);
 void
 syscall_init (void) 
 {
@@ -58,6 +59,7 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_EXEC:
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
+      is_valid_ptr(cmd_line); 
       f->eax = process_execute((char*)va_to_pa((void*)cmd_line));
       break;
       
@@ -69,7 +71,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CREATE:
       lock_acquire(&fs_lock);
       file_name = *(char**)stack_pop(&stack,sizeof(char*));
-      is_valid_ptr(file_name);
+      is_valid_ptr(file_name); 
       int file_size =  *(int*) stack_pop(&stack,sizeof(int));
       f->eax = !!filesys_create((char*)va_to_pa((void*)file_name), file_size); 
       lock_release(&fs_lock);
@@ -92,8 +94,11 @@ syscall_handler (struct intr_frame *f)
       lock_acquire(&fs_lock);
       file_name = *(char**)stack_pop(&stack, sizeof(char*));
       is_valid_ptr(file_name);
-      f->eax = (uint32_t)filesys_open(file_name);
+
+      struct file *file_struct = filesys_open((char *)va_to_pa((void *)file_name));
       lock_release(&fs_lock);
+      
+      f->eax = init_thread_file_struct(file_struct);
       break;
 
     case SYS_FILESIZE:
@@ -164,6 +169,7 @@ static void* stack_pop(void **esp, int bytes)
   return data_popped;
 }
 
+/*P2*/
 static void sys_exit(int exit_status)
 {
   struct thread *t = thread_current();
@@ -180,11 +186,11 @@ static void sys_exit(int exit_status)
   }
   
   /*lastly call process exit*/
-  
   thread_exit();
   NOT_REACHED();
 }
 
+/*P2*/
 static void * va_to_pa(void * va)
 {
   void * pa = pagedir_get_page(thread_current()->pagedir, va);
@@ -195,6 +201,22 @@ static void * va_to_pa(void * va)
   return pa;
 }
 
+
+
+static int *init_thread_file_struct(struct file * file_struct)
+{
+  struct thread *t = thread_current();
+  struct an_open_file threads_file;
+
+  if (file_struct == NULL) return -1; /* if the file doesnt exit return bad fd*/
+
+  threads_file.the_file = file_struct;
+  threads_file.file_descriptor = t->next_file_descriptor++; /* get the next fd and increment it after */
+
+  list_push_back(&t->open_files,&threads_file.elem);
+
+  return threads_file.file_descriptor;
+}
 // added for project 2
 //System call numbers for reference
 //left numbers are the enum numbers for the sys_call, right side of numbers is the number of arguments for that call
