@@ -32,10 +32,12 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 { /*P2*/
+ struct thread *t = thread_current();
+// printf("our pointer = %p\n our tid = %d\n" ,f->esp, t->tid);  
  is_valid_ptr(f->esp);
+ va_to_pa(f->esp);
  //int syscall_num = * (int *) f->esp;
  void *stack = f->esp;
- struct thread *t = thread_current();
  int exit_status;
  tid_t wait_tid;
  char * cmd_line;
@@ -124,6 +126,7 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_READ:
+
       break;
 
     case SYS_WRITE:
@@ -192,18 +195,17 @@ static void* stack_pop(void **esp, int bytes)
 void sys_exit(int exit_status)
 {
   struct thread *t = thread_current();
-
   t->our_child_self->exit_status = exit_status;
 
   /* is our parent waiting on us? */
   //printf("t->parent->child_waiting_on = %d ;  t->tid = %d\n", t->parent->child_waiting_on, t->tid);
   printf ("%s: exit(%d)\n", t->name, exit_status);
+//  printf ("parent waiting on %d\n", t->parent->child_waiting_on);
   if (t->parent->child_waiting_on == t->tid) 
   {
     /* preemtion might occur here maybe it breaks shit*/
     sema_up(&t->parent->child_wait_sema);
   }
-  
   /*lastly call process exit*/
   thread_exit();
   NOT_REACHED();

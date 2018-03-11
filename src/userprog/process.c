@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#include "userprog/syscall.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -117,6 +118,7 @@ process_wait (tid_t child_tid)
   }
 
   thread_current()->child_waiting_on = child_tid;
+
   sema_down(&thread_current()->child_wait_sema);
   thread_current()->child_waiting_on = TID_ERROR;
   int status = cp->exit_status;
