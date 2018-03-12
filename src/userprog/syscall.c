@@ -7,6 +7,7 @@
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "filesys/filesys.h"
+#include "filesys/file.h"
 #include "process.h"
 #include "pagedir.h"
 #include "threads/init.h"
@@ -37,14 +38,17 @@ syscall_handler (struct intr_frame *f)
 { /*P2*/
  struct thread *t = thread_current();
 // printf("our pointer = %p\n our tid = %d\n" ,f->esp, t->tid);  
+
  is_valid_ptr(f->esp);
- va_to_pa(f->esp);
+ //(f->esp); //Not sure why? Commented out.
+
  //int syscall_num = * (int *) f->esp;
  void *stack = f->esp;
  int exit_status;
  tid_t wait_tid;
  char * cmd_line;
  char * file_name;
+ 
  
  int syscall_num = *(int *) stack_pop(&stack,sizeof(int));
  switch(syscall_num)
@@ -135,30 +139,32 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ:
     {
       int fd = *(int *)stack_pop(&stack, sizeof(int*));
-      void *buffer = stack_pop(&stack, sizeof(void*));
+      void *buffer =  *(void **)stack_pop(&stack, sizeof(void*));
       unsigned size = *(unsigned *)stack_pop(&stack, sizeof(unsigned *));
-
-      if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
+      if(!is_user_vaddr(buffer) || buffer < VA_BOTTOM || buffer == NULL)
       {
         f->eax = -1;
         break;
       }
-
-      buffer = pagedir_get_page(thread_current()->pagedir, buffer);
-      if(buffer == NULL)
+      void * pg_ptr = (int)pagedir_get_page(thread_current()->pagedir, (const void *)buffer);
+      if(pg_ptr == NULL)
       {
         f->eax = -1;
         break;
       }
-
-      struct file *file = get_open_file(fd);
-
+      //hex_dump(f->esp-100, f->esp-100, 400, 1);
+      //printf("**************END FIRST DUMP************\n");
+      //printf("POINTER: %p\n", *(int *)pg_ptr);
       lock_acquire(&fs_lock);
-      off_t bytes_read = file_read (file, buffer, size);
+      struct file *file = get_open_file(fd);
+      if(file == NULL){
+        sys_exit(-1);
+      }
+      f->eax = (uint32_t)file_read (file, pg_ptr, size);
+      //printf("POINTER: %p\n", *(int *)pg_ptr);
       lock_release(&fs_lock);
-
-      f->eax = bytes_read;
-
+      //hex_dump(f->esp-100, f->esp-100, 400, 1);
+      //f->eax = 1324;
       break;
     }
     case SYS_WRITE:
@@ -169,7 +175,7 @@ syscall_handler (struct intr_frame *f)
       ASSERT(is_user_vaddr(buffer));
       /* if(!is_user_vaddr(buffer)){
         ASSERT(0)
-        thread_exit();
+        thread_exit(git);
       } */
       void *pg_ptr = pagedir_get_page(t->pagedir, buffer);
       ASSERT(pg_ptr != NULL);
@@ -189,6 +195,7 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_CLOSE:
+      printf("TRIED TO CLOSE************\n");
       break;
 
     default:
