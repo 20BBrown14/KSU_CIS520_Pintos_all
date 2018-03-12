@@ -27,6 +27,17 @@ main (void)
 
   fd = open("cp");
   printf("our file's size is %d\n",filesize(fd));
+
+//  bool test = remove("asd.txt");
+ // printf("removed = %d\n", test);
+  
+  fd = open("lorem");
+ 
+  char buffer[30];
+  int bytesRead = read(fd,buffer,30);
+
+  //printf(buffer);
+
   halt ();
   /* not reached */
 }

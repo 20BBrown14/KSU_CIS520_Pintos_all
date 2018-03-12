@@ -28,5 +28,6 @@ pintos -p ../../examples/halt -a halt -- -q
 pintos -p ../../examples/echo -a echo -- -q
 pintos -p ../../examples/cat -a cat -- -q
 pintos -p ../../examples/cp -a cp -- -q
+pintos -p ../../examples/lorem -a lorem -- -q
 
 pintos -q ls

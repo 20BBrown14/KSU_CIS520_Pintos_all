@@ -97,28 +97,24 @@ syscall_handler (struct intr_frame *f)
       file_name = *(char**)stack_pop(&stack,sizeof(char*));
       is_valid_ptr(file_name); 
       int file_size =  *(int*) stack_pop(&stack,sizeof(int));
-      f->eax = !!filesys_create((char*)va_to_pa((void*)file_name), file_size); 
+      f->eax = filesys_create((char*)va_to_pa((void*)file_name), file_size); 
       lock_release(&fs_lock);
       break;
 
     case SYS_REMOVE:
-     /* lock_acquire(&fs_lock);
-      file_name = *(char**)stack_pop(&stack, sizeof(char*));
-      if(filesys_remove(file_name)){
-        f->eax = 1;
-        lock_release(&fs_lock);
-        break;
-      }
-      else{
-        thread_exit();
-      } */
-      break;
-
-    case SYS_OPEN:
+    {
       lock_acquire(&fs_lock);
       file_name = *(char**)stack_pop(&stack, sizeof(char*));
       is_valid_ptr(file_name);
+      f->eax = filesys_remove(va_to_pa(file_name));
+      lock_release(&fs_lock);
+      break;
+    }
+    case SYS_OPEN:
+      file_name = *(char**)stack_pop(&stack, sizeof(char*));
+      is_valid_ptr(file_name);
 
+      lock_acquire(&fs_lock);
       struct file *file_struct = filesys_open((char *)va_to_pa((void *)file_name));
       lock_release(&fs_lock);
       
@@ -127,20 +123,44 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_FILESIZE:
     {
-      lock_acquire(&fs_lock);
       int fd = *(int *)stack_pop(&stack, sizeof(int*));
+      lock_acquire(&fs_lock);
       struct file *file = get_open_file(fd);
       off_t file_size = file_length(file);
       f->eax = file_size;
-
       lock_release(&fs_lock);
 
       break;
     }
     case SYS_READ:
+    {
+      int fd = *(int *)stack_pop(&stack, sizeof(int*));
+      void *buffer = stack_pop(&stack, sizeof(void*));
+      unsigned size = *(unsigned *)stack_pop(&stack, sizeof(unsigned *));
+
+      if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
+      {
+        f->eax = -1;
+        break;
+      }
+
+      buffer = pagedir_get_page(thread_current()->pagedir, buffer);
+      if(buffer == NULL)
+      {
+        f->eax = -1;
+        break;
+      }
+
+      struct file *file = get_open_file(fd);
+
+      lock_acquire(&fs_lock);
+      off_t bytes_read = file_read (file, buffer, size);
+      lock_release(&fs_lock);
+
+      f->eax = bytes_read;
 
       break;
-
+    }
     case SYS_WRITE:
     {
       int fd = *(int *)stack_pop(&stack,sizeof(int));
@@ -185,6 +205,7 @@ syscall_handler (struct intr_frame *f)
 
 
 /*P2*/
+/* TODO RENAME maybe something like ... exit_if_bad_ptr*/
 static void is_valid_ptr(const void *vaddr)
 {
   if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
