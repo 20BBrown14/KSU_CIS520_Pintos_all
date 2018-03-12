@@ -143,13 +143,13 @@ syscall_handler (struct intr_frame *f)
       unsigned size = *(unsigned *)stack_pop(&stack, sizeof(unsigned *));
       if(!is_user_vaddr(buffer) || buffer < VA_BOTTOM || buffer == NULL)
       {
-        f->eax = -1;
+        sys_exit(-1);
         break;
       }
       void * pg_ptr = (int)pagedir_get_page(thread_current()->pagedir, (const void *)buffer);
       if(pg_ptr == NULL)
       {
-        f->eax = -1;
+        sys_exit(-1);
         break;
       }
       //hex_dump(f->esp-100, f->esp-100, 400, 1);
@@ -178,14 +178,24 @@ syscall_handler (struct intr_frame *f)
         thread_exit(git);
       } */
       void *pg_ptr = pagedir_get_page(t->pagedir, buffer);
-      ASSERT(pg_ptr != NULL);
+      if(pg_ptr == NULL){
+        sys_exit(-1);
+      }
       /*if(pg_ptr == NULL){
         thread_exit();
       }*/
       if(fd == 1){
         putbuf((char *) pg_ptr, size);
+        f->eax = (uint32_t)size;
+        break;
       }
-      f->eax = (uint32_t)size;
+      lock_acquire(&fs_lock);
+      struct file *the_file = get_open_file(fd);
+      if(the_file == NULL){
+        sys_exit(-1);
+      }
+      f->eax = file_write(the_file, pg_ptr, size);
+      lock_release(&fs_lock);
       break;
     }
     case SYS_SEEK:
@@ -195,8 +205,13 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_CLOSE:
-      printf("TRIED TO CLOSE************\n");
+    {
+      int fd = *(int *)stack_pop(&stack,sizeof(int));
+      lock_acquire(&fs_lock);
+      file_close(get_open_file(fd));
+      lock_release(&fs_lock);
       break;
+    }
 
     default:
       printf("***SYSTEM CALL ERROR***\n");
