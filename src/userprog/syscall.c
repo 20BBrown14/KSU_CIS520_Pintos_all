@@ -21,7 +21,10 @@ static void is_valid_ptr (const void *vaddr);
 static struct lock fs_lock;
 static void* stack_pop(void ** esp, int bytes);
 static void * va_to_pa(void * va);
-static int *init_thread_file_struct(struct file * f);
+static int init_thread_file_struct(struct file * f);
+static struct file *get_open_file (int fd);
+
+
 void
 syscall_init (void) 
 {
@@ -123,8 +126,17 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_FILESIZE:
-      break;
+    {
+      lock_acquire(&fs_lock);
+      int fd = *(int *)stack_pop(&stack, sizeof(int*));
+      struct file *file = get_open_file(fd);
+      off_t file_size = file_length(file);
+      f->eax = file_size;
 
+      lock_release(&fs_lock);
+
+      break;
+    }
     case SYS_READ:
 
       break;
@@ -223,21 +235,44 @@ static void * va_to_pa(void * va)
 }
 
 
-
-static int *init_thread_file_struct(struct file * file_struct)
+/*returns a file descriptor for the given file struct*/
+static int init_thread_file_struct(struct file * file_struct)
 {
   struct thread *t = thread_current();
   struct an_open_file threads_file;
 
   if (file_struct == NULL) return -1; /* if the file doesnt exit return bad fd*/
 
-  threads_file.the_file = file_struct;
+  threads_file.file = file_struct;
   threads_file.file_descriptor = t->next_file_descriptor++; /* get the next fd and increment it after */
 
   list_push_back(&t->open_files,&threads_file.elem);
 
   return threads_file.file_descriptor;
 }
+
+
+/*P2*/
+/* returns a file struct for the given file descriptor*/
+/* if fd doesnt match an open file, returns NULL*/
+static struct file *get_open_file (int fd) 
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+
+  for(e = list_begin(&t->open_files); e != list_end(&t->open_files); e=list_next(e))
+  {
+    struct an_open_file *an_open_f = list_entry(e, struct an_open_file, elem );
+    if(fd == an_open_f->file_descriptor )
+    {
+      return an_open_f->file;
+    }
+  }
+  return NULL;
+}
+
+
+
 // added for project 2
 //System call numbers for reference
 //left numbers are the enum numbers for the sys_call, right side of numbers is the number of arguments for that call

@@ -53,7 +53,7 @@ struct an_open_file
 {
   int file_descriptor; /* starting at 2*/
   struct list_elem elem; 
-  struct file * the_file; /* a ptr to the file struct that describes this file*/
+  struct file * file; /* a ptr to the file struct that describes this file*/
 };
 
 /* A kernel thread or user process.
