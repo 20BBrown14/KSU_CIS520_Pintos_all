@@ -25,6 +25,7 @@ static void * va_to_pa(void * va);
 static int init_thread_file_struct(struct file * f);
 static struct file *get_open_file (int fd);
 
+static void rm_file_from_open_files(int fd);
 
 void
 syscall_init (void) 
@@ -40,7 +41,7 @@ syscall_handler (struct intr_frame *f)
 // printf("our pointer = %p\n our tid = %d\n" ,f->esp, t->tid);  
 
  is_valid_ptr(f->esp);
- //(f->esp); //Not sure why? Commented out.
+ va_to_pa(f->esp); //Not sure why? Commented out. //because you accidently deleted the function maybe idk need to check the stack pointer
 
  //int syscall_num = * (int *) f->esp;
  void *stack = f->esp;
@@ -146,7 +147,8 @@ syscall_handler (struct intr_frame *f)
         sys_exit(-1);
         break;
       }
-      void * pg_ptr = (int)pagedir_get_page(thread_current()->pagedir, (const void *)buffer);
+      /*removed int cast (int) of pagedir_get.. since already returns a void pointer*/
+      void * pg_ptr = pagedir_get_page(thread_current()->pagedir, (const void *)buffer);
       if(pg_ptr == NULL)
       {
         sys_exit(-1);
@@ -208,7 +210,14 @@ syscall_handler (struct intr_frame *f)
     {
       int fd = *(int *)stack_pop(&stack,sizeof(int));
       lock_acquire(&fs_lock);
-      file_close(get_open_file(fd));
+      struct file *file = get_open_file(fd);
+      if (file == NULL)
+      {
+        sys_exit(-1);
+        break;
+      }
+      file_close(file);
+      rm_file_from_open_files(fd); 
       lock_release(&fs_lock);
       break;
     }
@@ -313,7 +322,23 @@ static struct file *get_open_file (int fd)
   }
   return NULL;
 }
+ 
+/*P2*/
+static void rm_file_from_open_files(int fd)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
 
+  for(e = list_begin(&t->open_files); e != list_end(&t->open_files); e=list_next(e))
+  {
+    struct an_open_file *an_open_f = list_entry(e, struct an_open_file, elem );
+    if(fd == an_open_f->file_descriptor )
+    {
+      /*remove the file with matching fd */
+      list_remove(e);
+    }
+  }
+}
 
 
 // added for project 2
