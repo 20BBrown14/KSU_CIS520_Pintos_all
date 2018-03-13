@@ -145,6 +145,7 @@ struct thread
     /*files stuff */
     struct list open_files; 
     int next_file_descriptor;
+    struct file *executable;
 
 
 #ifdef USERPROG

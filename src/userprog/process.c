@@ -273,7 +273,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   strlcpy(just_file_name, file_name, strlen(file_name)+1);
   just_file_name = strtok_r((char *) just_file_name, " ", &save_ptr2); //TODO: Change variable name
   file = filesys_open (just_file_name);
+  thread_current()->executable = file;
   
+  
+
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", just_file_name);
@@ -367,8 +370,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file); //TODO: Maybe delete this
   palloc_free_page(just_file_name);
+  if(file != NULL)
+    file_deny_write(file); //Deny writes to exe;
   return success;
 }
 

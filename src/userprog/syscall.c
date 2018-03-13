@@ -130,7 +130,12 @@ syscall_handler (struct intr_frame *f)
     {
       int fd = *(int *)stack_pop(&stack, sizeof(int*));
       lock_acquire(&fs_lock);
-      struct file *file = get_open_file(fd);
+      struct file *file = get_open_file(fd); 
+      if(file == NULL){
+        lock_release(&fs_lock);
+        sys_exit(-1);
+        break;
+      }
       off_t file_size = file_length(file);
       f->eax = file_size;
       lock_release(&fs_lock);
@@ -160,7 +165,9 @@ syscall_handler (struct intr_frame *f)
       lock_acquire(&fs_lock);
       struct file *file = get_open_file(fd);
       if(file == NULL){
+        lock_release(&fs_lock);
         sys_exit(-1);
+        break;
       }
       f->eax = (uint32_t)file_read (file, pg_ptr, size);
       //printf("POINTER: %p\n", *(int *)pg_ptr);
@@ -182,6 +189,7 @@ syscall_handler (struct intr_frame *f)
       void *pg_ptr = pagedir_get_page(t->pagedir, buffer);
       if(pg_ptr == NULL){
         sys_exit(-1);
+        break;
       }
       /*if(pg_ptr == NULL){
         thread_exit();
@@ -194,6 +202,7 @@ syscall_handler (struct intr_frame *f)
       lock_acquire(&fs_lock);
       struct file *the_file = get_open_file(fd);
       if(the_file == NULL){
+        lock_release(&fs_lock);
         sys_exit(-1);
       }
       f->eax = file_write(the_file, pg_ptr, size);
@@ -201,10 +210,33 @@ syscall_handler (struct intr_frame *f)
       break;
     }
     case SYS_SEEK:
+    {
+      int fd = *(int *)stack_pop(&stack, sizeof(int));
+      unsigned position = *(unsigned *)stack_pop(&stack, sizeof(unsigned));
+      lock_acquire(&fs_lock);
+      struct file *the_file = get_open_file(fd);
+      if(the_file == NULL){
+        lock_release(&fs_lock);
+        sys_exit(-1);
+      }
+      file_seek(the_file, position);
+      lock_release(&fs_lock);
       break;
+    }
 
     case SYS_TELL:
+    {
+      int fd = *(int *)stack_pop(&stack, sizeof(int));
+      lock_acquire(&fs_lock);
+      struct file *the_file = get_open_file(fd);
+      if(the_file == NULL){
+        lock_release(&fs_lock);
+        sys_exit(-1);
+      }
+      f->eax = file_tell(the_file);
+      lock_release(&fs_lock);
       break;
+    }
 
     case SYS_CLOSE:
     {
@@ -213,6 +245,7 @@ syscall_handler (struct intr_frame *f)
       struct file *file = get_open_file(fd);
       if (file == NULL)
       {
+        lock_release(&fs_lock);
         sys_exit(-1);
         break;
       }
@@ -241,6 +274,9 @@ static void is_valid_ptr(const void *vaddr)
 {
   if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
   {
+    if(lock_held_by_current_thread(&fs_lock)){
+      lock_release(&fs_lock);
+    }
     sys_exit(-1);
   }
   
@@ -271,6 +307,11 @@ void sys_exit(int exit_status)
     sema_up(&t->parent->child_wait_sema);
   }
   /*lastly call process exit*/
+  if(thread_current()->executable != NULL)
+    file_close(thread_current()->executable);
+    if(lock_held_by_current_thread(&fs_lock)){
+      lock_release(&fs_lock);
+    }
   thread_exit();
   NOT_REACHED();
 }
@@ -281,6 +322,9 @@ static void * va_to_pa(void * va)
   void * pa = pagedir_get_page(thread_current()->pagedir, va);
   if(pa == NULL)
   {
+    if(lock_held_by_current_thread(&fs_lock)){
+      lock_release(&fs_lock);
+    }
     sys_exit(-1);
   }
   return pa;
@@ -291,16 +335,16 @@ static void * va_to_pa(void * va)
 static int init_thread_file_struct(struct file * file_struct)
 {
   struct thread *t = thread_current();
-  struct an_open_file threads_file;
+  struct an_open_file *threads_file = (struct an_open_file *)malloc(sizeof(struct an_open_file));
 
   if (file_struct == NULL) return -1; /* if the file doesnt exit return bad fd*/
 
-  threads_file.file = file_struct;
-  threads_file.file_descriptor = t->next_file_descriptor++; /* get the next fd and increment it after */
+  threads_file->file = file_struct;
+  threads_file->file_descriptor = t->next_file_descriptor++; /* get the next fd and increment it after */
 
-  list_push_back(&t->open_files,&threads_file.elem);
+  list_push_back(&t->open_files,&threads_file->elem);
 
-  return threads_file.file_descriptor;
+  return threads_file->file_descriptor;
 }
 
 
@@ -332,10 +376,15 @@ static void rm_file_from_open_files(int fd)
   for(e = list_begin(&t->open_files); e != list_end(&t->open_files); e=list_next(e))
   {
     struct an_open_file *an_open_f = list_entry(e, struct an_open_file, elem );
-    if(fd == an_open_f->file_descriptor )
+    //printf("***FD & an_open_f->fd: %d & %d\n", fd, an_open_f->file_descriptor);
+    //hex_dump(an_open_f, an_open_f, 200, 1);
+    int open_file_fd = an_open_f->file_descriptor;
+    if(fd == open_file_fd)
     {
       /*remove the file with matching fd */
+
       list_remove(e);
+      //free(an_open_f);
     }
   }
 }
