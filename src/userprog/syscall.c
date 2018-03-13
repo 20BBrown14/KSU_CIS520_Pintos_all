@@ -309,9 +309,10 @@ void sys_exit(int exit_status)
   /*lastly call process exit*/
   if(thread_current()->executable != NULL)
     file_close(thread_current()->executable);
-    if(lock_held_by_current_thread(&fs_lock)){
-      lock_release(&fs_lock);
-    }
+  if(lock_held_by_current_thread(&fs_lock)){
+    lock_release(&fs_lock);
+  }
+  t->our_child_self->exit = true;
   thread_exit();
   NOT_REACHED();
 }

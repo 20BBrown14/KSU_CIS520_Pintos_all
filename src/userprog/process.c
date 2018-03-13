@@ -118,8 +118,10 @@ process_wait (tid_t child_tid)
   }
 
   thread_current()->child_waiting_on = child_tid;
-
-  sema_down(&thread_current()->child_wait_sema);
+  while(cp->exit == false){
+    thread_yield();
+  }
+  //sema_down(&thread_current()->child_wait_sema);
   thread_current()->child_waiting_on = TID_ERROR;
   int status = cp->exit_status;
   list_remove(&cp->child_elem);

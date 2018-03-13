@@ -29,9 +29,9 @@ pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/sc-boundary-3 -a 
 perl -I../.. ../../tests/userprog/sc-boundary-3.ck tests/userprog/sc-boundary-3 tests/userprog/sc-boundary-3.result
 FAIL tests/userprog/sc-boundary-3
 Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a338
+Call stack: 0xc0029eb8
 Translation of call stack:
-0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
+0xc0029eb8: debug_panic (.../../lib/kernel/debug.c:38)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/halt -a halt -- -q  -f run halt < /dev/null 2> tests/userprog/halt.errors > tests/userprog/halt.output
 perl -I../.. ../../tests/userprog/halt.ck tests/userprog/halt tests/userprog/halt.result
 pass tests/userprog/halt
@@ -144,9 +144,9 @@ pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/exec-bound-2 -a e
 perl -I../.. ../../tests/userprog/exec-bound-2.ck tests/userprog/exec-bound-2 tests/userprog/exec-bound-2.result
 FAIL tests/userprog/exec-bound-2
 Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a338
+Call stack: 0xc0029eb8
 Translation of call stack:
-0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
+0xc0029eb8: debug_panic (.../../lib/kernel/debug.c:38)
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/userprog/exec-bound-3 -a exec-bound-3 -- -q  -f run exec-bound-3 < /dev/null 2> tests/userprog/exec-bound-3.errors > tests/userprog/exec-bound-3.output
 perl -I../.. ../../tests/userprog/exec-bound-3.ck tests/userprog/exec-bound-3 tests/userprog/exec-bound-3.result
 FAIL tests/userprog/exec-bound-3
@@ -208,12 +208,7 @@ pass tests/userprog/bad-jump2
 pintos -v -k -T 3 --bochs  --filesys-size=2 -p tests/userprog/no-vm/multi-oom -a multi-oom -- -q  -f run multi-oom < /dev/null 2> tests/userprog/no-vm/multi-oom.errors > tests/userprog/no-vm/multi-oom.output
 perl -I../.. ../../tests/userprog/no-vm/multi-oom.ck tests/userprog/no-vm/multi-oom tests/userprog/no-vm/multi-oom.result
 FAIL tests/userprog/no-vm/multi-oom
-Kernel panic in run: PANIC at ../../lib/kernel/list.c:84 in list_next(): assertion `is_head (elem) || is_interior (elem)' failed.
-Call stack: 0xc002a338 0x78656e5f
-Translation of call stack:
-In kernel.o:
-0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
-0x78656e5f: (unknown)
+Run didn't shut down properly: no "Timer: # ticks" message
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/filesys/base/lg-create -a lg-create -- -q  -f run lg-create < /dev/null 2> tests/filesys/base/lg-create.errors > tests/filesys/base/lg-create.output
 perl -I../.. ../../tests/filesys/base/lg-create.ck tests/filesys/base/lg-create tests/filesys/base/lg-create.result
 pass tests/filesys/base/lg-create
@@ -246,18 +241,13 @@ perl -I../.. ../../tests/filesys/base/sm-seq-random.ck tests/filesys/base/sm-seq
 pass tests/filesys/base/sm-seq-random
 pintos -v -k -T 300 --bochs  --filesys-size=2 -p tests/filesys/base/syn-read -a syn-read -p tests/filesys/base/child-syn-read -a child-syn-read -- -q  -f run syn-read < /dev/null 2> tests/filesys/base/syn-read.errors > tests/filesys/base/syn-read.output
 perl -I../.. ../../tests/filesys/base/syn-read.ck tests/filesys/base/syn-read tests/filesys/base/syn-read.result
-FAIL tests/filesys/base/syn-read
-Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc002a338
-Translation of call stack:
-0xc002a338: debug_panic (.../../lib/kernel/debug.c:38)
+pass tests/filesys/base/syn-read
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/filesys/base/syn-remove -a syn-remove -- -q  -f run syn-remove < /dev/null 2> tests/filesys/base/syn-remove.errors > tests/filesys/base/syn-remove.output
 perl -I../.. ../../tests/filesys/base/syn-remove.ck tests/filesys/base/syn-remove tests/filesys/base/syn-remove.result
 pass tests/filesys/base/syn-remove
 pintos -v -k -T 60 --bochs  --filesys-size=2 -p tests/filesys/base/syn-write -a syn-write -p tests/filesys/base/child-syn-wrt -a child-syn-wrt -- -q  -f run syn-write < /dev/null 2> tests/filesys/base/syn-write.errors > tests/filesys/base/syn-write.output
 perl -I../.. ../../tests/filesys/base/syn-write.ck tests/filesys/base/syn-write tests/filesys/base/syn-write.result
-FAIL tests/filesys/base/syn-write
-run: TIMEOUT after 60 seconds of host CPU time
+pass tests/filesys/base/syn-write
 pass tests/userprog/args-none
 pass tests/userprog/args-single
 pass tests/userprog/args-multiple
@@ -335,8 +325,8 @@ pass tests/filesys/base/sm-full
 pass tests/filesys/base/sm-random
 pass tests/filesys/base/sm-seq-block
 pass tests/filesys/base/sm-seq-random
-FAIL tests/filesys/base/syn-read
+pass tests/filesys/base/syn-read
 pass tests/filesys/base/syn-remove
-FAIL tests/filesys/base/syn-write
-6 of 80 tests failed.
+pass tests/filesys/base/syn-write
+4 of 80 tests failed.
 ../../tests/Make.tests:26: recipe for target 'check' failed
