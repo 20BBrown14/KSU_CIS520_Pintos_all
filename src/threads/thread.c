@@ -362,68 +362,12 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Added for project 1 */
-/* donate priority from running thread to a thread holding a lock. */
-// void thread_donate_priority (struct lock * lock)
-// {
-//   struct thread *donee_thread = lock->holder;
-//   /* Check if we need to donate */
-//   if(donee_thread->priority < lock->highest_waiter_priority)
-//   {
-//     /* donate, promoting donee to the priority of its highest lock */
-//     donee_thread->priority = lock->highest_waiter_priority;
-//     if(donee_thread->blocking_lock != NULL) /* The donee is also waiting on a lock. Donate to the thread that holds that */
-//     {
-//       if(lock->highest_waiter_priority > donee_thread->blocking_lock->highest_waiter_priority)
-//       {
-//         donee_thread->blocking_lock->highest_waiter_priority = lock->highest_waiter_priority;
-//       }
-//       thread_donate_priority(donee_thread->blocking_lock);
-//     }
-//     list_sort(&ready_list, thread_priority_more, NULL); /* sort the ready list since we have changed priorities */
-//   }
-// }
-
-/* Added for project 1 */
-/* return priority to all donors when releasing a lock */
-// void thread_return_donations (struct lock *lock)
-// {
-//   struct thread * donee_thread = thread_current();
-
-//   list_remove(&lock->elem); /* Removes this lock from the thread's list of held locks */
-  
-//   int highest_lock_priority = get_highest_lock_waiter_priority();
-
-//   /* donee thread priority should be the larger of either its highest lock priority or its base */
-//   donee_thread->priority = MAX_INT(highest_lock_priority, donee_thread->base_priority);
-
-//   /* sort the ready list since we have changed priorities */
-//   list_sort(&ready_list, thread_priority_more, NULL); 
-// }
-
-/* added for project 1 - Returns the highest priority waiter on the highest priority lock*/
-// static int get_highest_lock_waiter_priority (void)
-// {
-//   struct list_elem * highest_lock_elem = list_max(&thread_current()->lock_list, lock_waiter_priorty_less, NULL);
-//   return  list_entry(highest_lock_elem, struct lock, elem)->highest_waiter_priority; 
-// }
-
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
 {
-
   thread_current ()->priority = new_priority;
-  // struct thread *t = thread_current ();
-  // t->base_priority = new_priority;
-
-  // /* setting priority to max between highest lock waiter and base priority */
-  // t->priority = MAX_INT (t->base_priority, get_highest_lock_waiter_priority());
-
-  // /* sort the ready list since we have changed priorities and try_preempt*/
-  // list_sort(&ready_list, thread_priority_more, NULL); 
-  // try_preempt();
 }
 
 /* Returns the current thread's priority. */
@@ -564,19 +508,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->child_waiting_on = TID_ERROR;   /* the tid of the child we are waiting on TID_ERROR if parent is not waiting*/
   sema_init(&t->child_wait_sema,0);  /* initialize the child wait sema as a mutex */
 
- 
-    /*P2*/
-  /* adding the new child to its parents list'o'children */
-//  new_child.child_tid = tid;
-//  new_child.exit_status = -1; /* this is the default incase the kernel kills the thread. i.e. the only time this should change is if the child calls exit()*/
-//  new_child.t = t;
-//  new_child.load_success = NOT_LOADED;
-//  list_push_back(&rt->children, &new_child.child_elem);  /* add to list of children for the current thread */
-  
-  //struct list_elem *cur_elem = list_begin(&rt->children);
-  // struct child *cur_child = list_entry(cur_elem, struct child, elem);
- // t->our_child_self = &new_child; /*give the child a reference to the child struct that references it... makes sys call exit much easier*/
-
 
   /*P2*/
   list_init(&t->open_files);
@@ -702,78 +633,6 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
-/* added for project 1 */
-/* needs to return a max based on priority TODO MAYBE RENAME TO MAX  */
-// bool thread_priority_more (const struct list_elem *t1_, const struct list_elem *t2_,
-//             void *aux UNUSED) 
-// {
-//   const struct thread *t1 = list_entry (t1_, struct thread, elem);
-//   const struct thread *t2 = list_entry (t2_, struct thread, elem);
-   
-//   /* this is greater than not gt or equal to ensure oldest thread wins ties */
-//   return t1->priority > t2->priority;
-// }
-
-
-/* added for project 1 */
-/* needs to return a min based on priority */
-// bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
-//             void *aux UNUSED) 
-// {
-//   const struct thread *t1 = list_entry (t1_, struct thread, elem);
-//   const struct thread *t2 = list_entry (t2_, struct thread, elem);
-   
-//   return t1->priority <= t2->priority;
-// }
-
-/* Added for project 1 */
-/* used with list_max, returns true if lock1 priority is less than lock2's */
-// bool lock_waiter_priorty_less (const struct list_elem *lock1_, const struct list_elem *lock2_,
-//             void *aux UNUSED) 
-// {
-//   const struct lock *lock1 = list_entry (lock1_, struct lock, elem);
-//   const struct lock *lock2 = list_entry (lock2_, struct lock, elem);
-   
-//   return lock1->highest_waiter_priority < lock2->highest_waiter_priority;
-// }
-
-
-/* Added for project 1 */
-// void print_ready_list(void)
-// {
-//   struct list_elem *a = &ready_list.head;
-//   struct list_elem *b = &ready_list.tail;
-
-//   printf("*****Printing ready list*****\n");
-//   if(list_empty(&ready_list))
-//     printf("Ready list empty\n");
-//   while ((a = list_next (a)) != b) 
-//       printf("%s\n", list_entry(a, struct thread, elem)->name);
-//   printf("*****End of ready list*****\n");
-// }
-/* Added for project 1 */
-/* Preempt if needed. Always checks top of ready list. */
-/* Assumes ready list is sorted */
-// void try_preempt (void)
-// {
-//   list_sort(&ready_list, thread_priority_more, NULL);
-//   if(list_empty(&ready_list))
-//   {
-//     return;
-//   }
-//   struct thread *t = list_entry(list_front(&ready_list), struct thread, elem);
-//   if(t->priority > running_thread()->priority)
-//   {
-//     if(intr_context())
-//     {
-//       intr_yield_on_return();
-//     }
-//     else
-//     {
-//       thread_yield();
-//     }
-//   } 
-// }
 /*P2*/
 bool thread_alive (int pid)
 {

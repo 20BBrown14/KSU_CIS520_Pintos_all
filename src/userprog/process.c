@@ -373,7 +373,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  //file_close (file); //TODO: Maybe delete this
+  //file_close (file); // the file is closed in sys exit to write protect exec's
   palloc_free_page(just_file_name);
   if(file != NULL)
     file_deny_write(file); //Deny writes to exe;
@@ -516,7 +516,7 @@ setup_stack (void **esp, char *file_name)
   char ** save_ptr;
   int i, argc = 0, argv_size = 2; /*Use argc to keep track of how many args*/
   
-  /*Push args onto stack*/
+  /*Push args data onto stack*/
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr))
       {
@@ -533,12 +533,16 @@ setup_stack (void **esp, char *file_name)
 
       }
   argv[argc] = 0;
-  i = (size_t) *esp % 4;
+  i = (size_t) *esp % 4;/* i will be non zero if we need a word align  */ 
+
+ /* push a word align if needed */ 
   if(i)
   {
     *esp -= i;
     memcpy(*esp, &argv[argc], i);
   }
+
+  /*Push arg addrs onto stack*/
   for (i = argc; i >= 0; i--)
   {
     *esp -= sizeof(char *); /*Set stack pointer to reayd for push*/

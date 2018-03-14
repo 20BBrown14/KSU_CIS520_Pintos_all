@@ -27,7 +27,7 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
-/* project 1 added macro TODO move to utilites maybe? */
+/* project 1 added macro */
 #define MAX_INT(a,b) ((a>b) ? a : b); 
 
 /*P2*/
@@ -36,25 +36,26 @@ enum load_status  {
   LOAD_FAILED,
   LOAD_SUCCESS
 };
+
   /*P2*/
   /* a struct definition for dealing with children */
 struct child 
 {
-    int exit_status;
-    tid_t child_tid;
-    struct thread *t;
-    struct list_elem child_elem;
-    enum load_status load_success;
-    bool exit;
+    int exit_status;                  /* the child's exit status  */
+    tid_t child_tid;                  /* tid of the child */
+    struct thread *t;                 /* pointer to the thread struct of the child */
+    struct list_elem child_elem;      /* a list element so this can go on a list of children */
+    enum load_status load_success;    /* a status if the child loaded, failed to load, or has not yet loaded */
+    bool exit;                        /* a bool to indicate if the child has exited */
 };
 
 /*P2*/
 /* a struct for holding info about a file that the thread has open*/
 struct an_open_file
 {
-  int file_descriptor; /* starting at 2*/
-  struct list_elem elem; 
-  struct file * file; /* a ptr to the file struct that describes this file*/
+  int file_descriptor;    /* fd starting at 2, 0 & 1 are reserved for std in and std out*/
+  struct list_elem elem;  /* lets this struct go onto the thread's list of open files*/
+  struct file * file;     /* a ptr to the file struct that describes this file*/
 };
 
 /* A kernel thread or user process.
@@ -140,13 +141,13 @@ struct thread
     struct thread *parent;              /* our parent thread*/
     tid_t child_waiting_on;             /* the tid of the child we are waiting on */
     struct semaphore child_wait_sema;   /* semaphore if this thread is waiting on a child*/
-    struct child *our_child_self;        /* a reference to the child struct that holds our exit status... this was a real pita otherwise*/
+    struct child *our_child_self;       /* a reference to the child struct that holds our exit status... this was a real pita otherwise*/
 
     /*P2*/
     /*files stuff */
-    struct list open_files; 
-    int next_file_descriptor;
-    struct file *executable;
+    struct list open_files;             /* a list of this thread's open files */
+    int next_file_descriptor;           /* the int for the next fd */
+    struct file *executable;            /* a refererence to let us write protect the exec file for this thread */
 
 
 #ifdef USERPROG
@@ -200,14 +201,5 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-/* Added for project 1 */
-// void try_preempt (void);
-// void print_ready_list(void);
-// bool thread_priority_more (const struct list_elem *t1_, const struct list_elem *t2_,
-//             void *aux UNUSED);
-// bool lock_waiter_priorty_less (const struct list_elem *lock1_, const struct list_elem *lock2_,
-//             void *aux UNUSED);
-// bool thread_priority_less (const struct list_elem *t1_, const struct list_elem *t2_,
-//             void *aux UNUSED);
 
 #endif /* threads/thread.h */

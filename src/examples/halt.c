@@ -13,31 +13,6 @@
 int
 main (void)
 {
-  /*P2*/
-  /* using halt to test file create for now*/
-  /* TODO REMOVE MAKE COMMANDS */
-  char filename [7] = "asd.txt";
-  create(filename, 64);
-  //write(1, filename, 8);
-  int fd = open("asd.txt");
-  printf("our file's size is %d\n",filesize(fd));
-
-  fd = open("echo");
-  printf("our file's size is %d\n",filesize(fd));
-
-  fd = open("cp");
-  printf("our file's size is %d\n",filesize(fd));
-
-//  bool test = remove("asd.txt");
- // printf("removed = %d\n", test);
-  
-  fd = open("lorem");
- 
-  char buffer[30];
-  int bytesRead = read(fd,buffer,30);
-
-  //printf(buffer);
-
   halt ();
   /* not reached */
 }

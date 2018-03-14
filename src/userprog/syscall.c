@@ -3,7 +3,6 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-//#include "devices/shutdown.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "filesys/filesys.h"
@@ -13,15 +12,13 @@
 #include "threads/init.h"
 
 /*P2*/
-/* Magic number borrowed from ryantimwilson */
 #define VA_BOTTOM (void*)0x08048000
 
-//static struct child * get_child(int tid);
 static void syscall_handler (struct intr_frame *);
 static void is_valid_ptr (const void *vaddr);
 static struct lock fs_lock;
 static void* stack_pop(void ** esp, int bytes);
-static void * va_to_pa(void * va);
+static void * user_to_kernel(void * va);
 static int init_thread_file_struct(struct file * f);
 static struct file *get_open_file (int fd);
 
@@ -40,11 +37,10 @@ static void
 syscall_handler (struct intr_frame *f) 
 { /*P2*/
  struct thread *t = thread_current();
-// printf("our pointer = %p\n our tid = %d\n" ,f->esp, t->tid); 
 
  is_valid_ptr(f->esp);
   
- va_to_pa(f->esp); //Just using this to check validity, not do a conversion.
+ user_to_kernel(f->esp); //Just using this to check validity, not do a conversion.
  void *stack = f->esp;
  int exit_status;
  tid_t wait_tid;
@@ -56,7 +52,6 @@ syscall_handler (struct intr_frame *f)
  switch(syscall_num)
  {
     case SYS_HALT:
-      // thread_exit();
       shutdown_power_off();
       break;
 
@@ -72,12 +67,10 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_EXEC:
     {
-      //hex_dump(stack-15, stack-15, 25, 1);
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
       
       is_valid_ptr(cmd_line);
-      //printf("CMD_LINE = %s\n", cmd_line);
-      int tid = process_execute((char*)va_to_pa((void*)cmd_line));
+      int tid = process_execute((char*)user_to_kernel((void*)cmd_line));
       struct child * child_to_exec;
       child_to_exec = get_child_process(tid);
       
@@ -108,7 +101,7 @@ syscall_handler (struct intr_frame *f)
       file_name = *(char**)stack_pop(&stack,sizeof(char*));
       is_valid_ptr(file_name); 
       int file_size =  *(int*) stack_pop(&stack,sizeof(int));
-      f->eax = filesys_create((char*)va_to_pa((void*)file_name), file_size); 
+      f->eax = filesys_create((char*)user_to_kernel((void*)file_name), file_size); 
       lock_release(&fs_lock);
       break;
 
@@ -117,7 +110,7 @@ syscall_handler (struct intr_frame *f)
       lock_acquire(&fs_lock);
       file_name = *(char**)stack_pop(&stack, sizeof(char*));
       is_valid_ptr(file_name);
-      f->eax = filesys_remove(va_to_pa(file_name));
+      f->eax = filesys_remove(user_to_kernel(file_name));
       lock_release(&fs_lock);
       break;
     }
@@ -126,7 +119,7 @@ syscall_handler (struct intr_frame *f)
       is_valid_ptr(file_name);
 
       lock_acquire(&fs_lock);
-      struct file *file_struct = filesys_open((char *)va_to_pa((void *)file_name));
+      struct file *file_struct = filesys_open((char *)user_to_kernel((void *)file_name));
       lock_release(&fs_lock);
       
       f->eax = init_thread_file_struct(file_struct);
@@ -158,16 +151,12 @@ syscall_handler (struct intr_frame *f)
         sys_exit(-1);
         break;
       }
-      /*removed int cast (int) of pagedir_get.. since already returns a void pointer*/
       void * pg_ptr = pagedir_get_page(thread_current()->pagedir, (const void *)buffer);
       if(pg_ptr == NULL)
       {
         sys_exit(-1);
         break;
       }
-      //hex_dump(f->esp-100, f->esp-100, 400, 1);
-      //printf("**************END FIRST DUMP************\n");
-      //printf("POINTER: %p\n", *(int *)pg_ptr);
       lock_acquire(&fs_lock);
       struct file *file = get_open_file(fd);
       if(file == NULL){
@@ -176,10 +165,7 @@ syscall_handler (struct intr_frame *f)
         break;
       }
       f->eax = (uint32_t)file_read (file, pg_ptr, size);
-      //printf("POINTER: %p\n", *(int *)pg_ptr);
       lock_release(&fs_lock);
-      //hex_dump(f->esp-100, f->esp-100, 400, 1);
-      //f->eax = 1324;
       break;
     }
     case SYS_WRITE:
@@ -188,18 +174,12 @@ syscall_handler (struct intr_frame *f)
       void * buffer = *(void **)stack_pop(&stack,sizeof(void *));
       unsigned size = *(unsigned *)stack_pop(&stack,sizeof(unsigned *));
       ASSERT(is_user_vaddr(buffer));
-      /* if(!is_user_vaddr(buffer)){
-        ASSERT(0)
-        thread_exit(git);
-      } */
+
       void *pg_ptr = pagedir_get_page(t->pagedir, buffer);
       if(pg_ptr == NULL){
         sys_exit(-1);
         break;
       }
-      /*if(pg_ptr == NULL){
-        thread_exit();
-      }*/
       if(fd == 1){
         putbuf((char *) pg_ptr, size);
         f->eax = (uint32_t)size;
@@ -267,49 +247,30 @@ syscall_handler (struct intr_frame *f)
 
  }
 
- /* Removed for Project 2
+ /* Removed for Project 2*/
   //printf ("system call!\n");
   //thread_exit ();
-  */
 }
 
 
 /*P2*/
-/* TODO RENAME maybe something like ... exit_if_bad_ptr*/
-
 static void is_valid_ptr(const void *vaddr)
 {
     void * local_vaddr = vaddr;
-    //printf("LOCAL_VADDR = %p\n", local_vaddr);
     if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
     {
       sys_exit(-1);
     }
+
+    /* when checking for arguments that go past the frame bountry we found strange behavior */
+    /* this is a terrible solution but works to catch the issue */
     for(int i = 0; i < 4; i++)
     {
-      va_to_pa(local_vaddr);
+      user_to_kernel(local_vaddr);
       local_vaddr++;
     }
-    //va_to_pa(vaddr+4);
-    
-    //va_to_pa(vaddr);
 }
 
-/* TODO OMGWTFBBQ, hardcode 4? Can't pass int arg, idk, ftw */
-static void is_valid_ptr_range(const void *vaddr)
-{
-
-    va_to_pa(vaddr+4);
-
-    if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
-    {
-      sys_exit(-1);
-    }
-
-    va_to_pa(vaddr);
-    
-  
-}
 
 static void validate_data_ptr(void *data)
 {
@@ -318,7 +279,7 @@ static void validate_data_ptr(void *data)
       sys_exit(-1);
     }
 
-    va_to_pa(data);
+    user_to_kernel(data);
 }
 
 /*P2*/
@@ -338,9 +299,7 @@ void sys_exit(int exit_status)
   t->our_child_self->exit_status = exit_status;
 
   /* is our parent waiting on us? */
-  //printf("t->parent->child_waiting_on = %d ;  t->tid = %d\n", t->parent->child_waiting_on, t->tid);
   printf ("%s: exit(%d)\n", t->name, exit_status);
-//  printf ("parent waiting on %d\n", t->parent->child_waiting_on);
   if (t->parent->child_waiting_on == t->tid) 
   {
     /* preemtion might occur here maybe it breaks shit*/
@@ -358,7 +317,9 @@ void sys_exit(int exit_status)
 }
 
 /*P2*/
-static void * va_to_pa(void * va)
+/* given a user vaddr, returns a refernce the kernel can use */
+/* in other words translates user to kernel addresses */
+static void * user_to_kernel(void * va)
 {
   void * pa = pagedir_get_page(thread_current()->pagedir, va);
   if(pa == NULL)
@@ -402,7 +363,6 @@ static struct file *get_open_file (int fd)
       return an_open_f->file;
     }
   }
-  //free(e);
   return NULL;
 }
  
@@ -415,57 +375,13 @@ static void rm_file_from_open_files(int fd)
   for(e = list_begin(&t->open_files); e != list_end(&t->open_files); e=list_next(e))
   {
     struct an_open_file *an_open_f = list_entry(e, struct an_open_file, elem );
-    //printf("***FD & an_open_f->fd: %d & %d\n", fd, an_open_f->file_descriptor);
-    //hex_dump(an_open_f, an_open_f, 200, 1);
     int open_file_fd = an_open_f->file_descriptor;
     if(fd == open_file_fd)
     {
       /*remove the file with matching fd */
-
       list_remove(e);
-      //free(e);
-      //free(an_open_f);
     }
   }
 }
 
 
-// added for project 2
-//System call numbers for reference
-//left numbers are the enum numbers for the sys_call, right side of numbers is the number of arguments for that call
-//  0  SYS_HALT,                   /* Halt the operating system. */         0
-//  1  SYS_EXIT,                   /* Terminate this process. */            1
-//  2  SYS_EXEC,                   /* Start another process. */             1
-//  3  SYS_WAIT,                   /* Wait for a child process to die. */   1
-//  4  SYS_CREATE,                 /* Create a file. */                     2
-//  5  SYS_REMOVE,                 /* Delete a file. */                     1
-//  6  SYS_OPEN,                   /* Open a file. */                       1
-//  7  SYS_FILESIZE,               /* Obtain a file's size. */              1
-//  8  SYS_READ,                   /* Read from a file. */                  3
-//  9  SYS_WRITE,                  /* Write to a file. */                   3
-//  10 SYS_SEEK,                   /* Change position in a file. */         2
-//  11 SYS_TELL,                   /* Report current position in a file. */ 1
-//  12 SYS_CLOSE,                  /* Close a file. */                      1
-       
-//      filesys_create(*(char**)stack_pop(&stack,sizeof(char*)), *(int*) stack_pop(&stack,sizeof(int)));
-//      printf("filename:%s  \n",*(char**)stack_pop(&stack,sizeof(char*)));
-//      printf("size is %d\n",*(int*) stack_pop(&stack,sizeof(int)));
-
-     //hex_dump(stack,stack,40,1);
-/*
-static struct child * get_child(int tid)
-{
-  struct thread *t = thread_current();
-  struct list_elem *e;
-
-  for(e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e))
-  {
-    struct child *cp = list_entry(e, struct child, child_elem);
-    if(tid == cp->child_tid)
-    {
-      return cp;
-    }
-  }
-  return NULL;
-}
-*/
