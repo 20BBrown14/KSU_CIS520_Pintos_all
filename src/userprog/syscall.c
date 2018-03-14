@@ -27,6 +27,7 @@ static struct file *get_open_file (int fd);
 
 static void rm_file_from_open_files(int fd);
 static void is_valid_ptr_range(const void *vaddr);
+static void validate_data_ptr(void *data);
 
 void
 syscall_init (void) 
@@ -73,12 +74,13 @@ syscall_handler (struct intr_frame *f)
     {
       //hex_dump(stack-15, stack-15, 25, 1);
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
+      
       is_valid_ptr(cmd_line);
-
+      //printf("CMD_LINE = %s\n", cmd_line);
       int tid = process_execute((char*)va_to_pa((void*)cmd_line));
       struct child * child_to_exec;
       child_to_exec = get_child_process(tid);
-
+      
       ASSERT(child_to_exec != NULL);  
       
       while(child_to_exec->load_success == NOT_LOADED)
@@ -90,7 +92,6 @@ syscall_handler (struct intr_frame *f)
         tid = TID_ERROR; 
 
       }
-
 
       f->eax = tid;
       break;
@@ -278,12 +279,20 @@ syscall_handler (struct intr_frame *f)
 
 static void is_valid_ptr(const void *vaddr)
 {
-    va_to_pa(vaddr+4);
+    void * local_vaddr = vaddr;
+    //printf("LOCAL_VADDR = %p\n", local_vaddr);
     if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
     {
       sys_exit(-1);
     }
-    va_to_pa(vaddr);
+    for(int i = 0; i < 4; i++)
+    {
+      va_to_pa(local_vaddr);
+      local_vaddr++;
+    }
+    //va_to_pa(vaddr+4);
+    
+    //va_to_pa(vaddr);
 }
 
 /* TODO OMGWTFBBQ, hardcode 4? Can't pass int arg, idk, ftw */
@@ -302,9 +311,20 @@ static void is_valid_ptr_range(const void *vaddr)
   
 }
 
+static void validate_data_ptr(void *data)
+{
+  if(!is_user_vaddr(data) || data < VA_BOTTOM || data == NULL)
+    {
+      sys_exit(-1);
+    }
+
+    va_to_pa(data);
+}
+
 /*P2*/
 static void* stack_pop(void **esp, int bytes)
 {
+  validate_data_ptr(*esp);
   void *data_popped= *esp;
   is_valid_ptr(data_popped);
   *esp =  *esp + bytes;
@@ -382,6 +402,7 @@ static struct file *get_open_file (int fd)
       return an_open_f->file;
     }
   }
+  //free(e);
   return NULL;
 }
  
@@ -402,6 +423,7 @@ static void rm_file_from_open_files(int fd)
       /*remove the file with matching fd */
 
       list_remove(e);
+      //free(e);
       //free(an_open_f);
     }
   }
