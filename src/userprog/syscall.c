@@ -26,6 +26,7 @@ static int init_thread_file_struct(struct file * f);
 static struct file *get_open_file (int fd);
 
 static void rm_file_from_open_files(int fd);
+static void is_valid_ptr_range(const void *vaddr);
 
 void
 syscall_init (void) 
@@ -38,12 +39,11 @@ static void
 syscall_handler (struct intr_frame *f) 
 { /*P2*/
  struct thread *t = thread_current();
-// printf("our pointer = %p\n our tid = %d\n" ,f->esp, t->tid);  
+// printf("our pointer = %p\n our tid = %d\n" ,f->esp, t->tid); 
 
  is_valid_ptr(f->esp);
- va_to_pa(f->esp); //Not sure why? Commented out. //because you accidently deleted the function maybe idk need to check the stack pointer
-
- //int syscall_num = * (int *) f->esp;
+  
+ va_to_pa(f->esp); //Just using this to check validity, not do a conversion.
  void *stack = f->esp;
  int exit_status;
  tid_t wait_tid;
@@ -62,6 +62,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXIT:
       /*set exit status */
       exit_status = *(int *) stack_pop(&stack,sizeof(int));
+
       
       sys_exit(exit_status);
 
@@ -69,14 +70,17 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_EXEC:
+    {
+      //hex_dump(stack-15, stack-15, 25, 1);
       cmd_line = * (char **) stack_pop(&stack, sizeof(char *));
-      is_valid_ptr(cmd_line); 
+      is_valid_ptr(cmd_line);
+
       int tid = process_execute((char*)va_to_pa((void*)cmd_line));
       struct child * child_to_exec;
       child_to_exec = get_child_process(tid);
 
       ASSERT(child_to_exec != NULL);  
-
+      
       while(child_to_exec->load_success == NOT_LOADED)
       {
         thread_yield();
@@ -90,6 +94,7 @@ syscall_handler (struct intr_frame *f)
 
       f->eax = tid;
       break;
+    }
 
       
     case SYS_WAIT:
@@ -270,15 +275,30 @@ syscall_handler (struct intr_frame *f)
 
 /*P2*/
 /* TODO RENAME maybe something like ... exit_if_bad_ptr*/
+
 static void is_valid_ptr(const void *vaddr)
 {
-  if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
-  {
-    if(lock_held_by_current_thread(&fs_lock)){
-      lock_release(&fs_lock);
+    va_to_pa(vaddr+4);
+    if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
+    {
+      sys_exit(-1);
     }
-    sys_exit(-1);
-  }
+    va_to_pa(vaddr);
+}
+
+/* TODO OMGWTFBBQ, hardcode 4? Can't pass int arg, idk, ftw */
+static void is_valid_ptr_range(const void *vaddr)
+{
+
+    va_to_pa(vaddr+4);
+
+    if(!is_user_vaddr(vaddr) || vaddr < VA_BOTTOM || vaddr == NULL)
+    {
+      sys_exit(-1);
+    }
+
+    va_to_pa(vaddr);
+    
   
 }
 
@@ -323,9 +343,6 @@ static void * va_to_pa(void * va)
   void * pa = pagedir_get_page(thread_current()->pagedir, va);
   if(pa == NULL)
   {
-    if(lock_held_by_current_thread(&fs_lock)){
-      lock_release(&fs_lock);
-    }
     sys_exit(-1);
   }
   return pa;

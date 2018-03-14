@@ -120,7 +120,8 @@ process_wait (tid_t child_tid)
   thread_current()->child_waiting_on = child_tid;
   while(cp->exit == false){
     thread_yield();
-  }
+  } /*Sema is preferable to busy wait, but synchro tests were failing 
+  because of preemption on the sema*/
   //sema_down(&thread_current()->child_wait_sema);
   thread_current()->child_waiting_on = TID_ERROR;
   int status = cp->exit_status;
