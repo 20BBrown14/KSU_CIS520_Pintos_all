@@ -254,7 +254,6 @@ bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
   /*P2*/
-  //TODO: Clean this shit up
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -272,7 +271,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
   
   /* Open executable file. */
-  just_file_name = palloc_get_page (0); //TODO: Don't allocate so much memory, Sam.
+  //just_file_name = palloc_get_page (0); //TODO: Don't allocate so much memory, Sam.
+  just_file_name = (char *)malloc(strlen(file_name)+1);
+
   strlcpy(just_file_name, file_name, strlen(file_name)+1);
   just_file_name = strtok_r((char *) just_file_name, " ", &save_ptr2); //TODO: Change variable name
   file = filesys_open (just_file_name);
@@ -374,7 +375,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   //file_close (file); // the file is closed in sys exit to write protect exec's
-  palloc_free_page(just_file_name);
+  //palloc_free_page(just_file_name);
+  free(just_file_name);
   if(file != NULL)
     file_deny_write(file); //Deny writes to exe;
   return success;
