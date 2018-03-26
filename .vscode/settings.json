@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "file.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "palloc.h": "c",
+        "vaddr.h": "c",
+        "kbd.h": "c",
+        "lib.h": "c",
+        "xutility": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "xmemory": "c",
+        "initializer_list": "c",
+        "*.inc": "c"
+    }
+}
