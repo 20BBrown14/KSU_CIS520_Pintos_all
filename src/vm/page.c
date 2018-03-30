@@ -52,19 +52,11 @@ page_for_addr (const void *address)
 
       /* No page.  Expand stack? */
 
-      //TODO: make stack bigger and create page
-      /* If we cannot grow the stack, retyrn null */
-      if(PHYS_BASE - pg_round_down(address) > MAX_STACK_SIZE)
+      /* If we cannot grow the stack, or trying to allocate outside the stack return null */
+      if ((p.addr > PHYS_BASE - STACK_MAX) && ((void *)thread_current()->user_esp - 32 < address))
       {
-        return NULL;
+        return page_allocate (p.addr, false);
       }
-
-      /* Allocate a new page, return null if it fails */
-      struct page *new_page = page_allocate(address, false);
-
-      return new_page;
-
-/* add code */
 
     }
   return NULL;
