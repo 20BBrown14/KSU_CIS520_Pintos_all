@@ -6,6 +6,10 @@
 #include "filesys/off_t.h"
 #include "threads/synch.h"
 
+/*P3*/
+/* 8 MB */
+#define MAX_STACK_SIZE (8*(1<<20))
+
 /* Virtual page. */
 struct page 
   {

@@ -561,7 +561,7 @@ static int
 sys_munmap (int mapping) 
 {
 /* add code here */
-
+  unmap(lookup_mapping(mapping));
   return 0;
 }
  
