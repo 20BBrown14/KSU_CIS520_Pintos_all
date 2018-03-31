@@ -530,7 +530,7 @@ unmap (struct mapping *m)
   /*free process memory*/
   for(i = 0; i < m->page_cnt; i++)
   {
-    p = (struct page *) m->base + i * PGSIZE;
+    p = (void *) m->base + i * PGSIZE;
     page_deallocate(p);
   }
 
