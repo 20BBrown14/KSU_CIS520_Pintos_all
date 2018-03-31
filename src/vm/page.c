@@ -53,7 +53,9 @@ page_for_addr (const void *address)
       /* No page.  Expand stack? */
 
       /* If we cannot grow the stack, or trying to allocate outside the stack return null */
-      if ((p.addr > PHYS_BASE - STACK_MAX) && ((void *)thread_current()->user_esp - 32 < address))
+      /* (void *)thread_current()->user_esp - 32 < address) checks if the address given is on the stack*/
+      /* (p.addr > phys_base - stack_max) checks if growing the stack will cause it to become too large */  
+      if ((p.addr > PHYS_BASE- STACK_MAX) && ((void *)thread_current()->user_esp - 32 < address))
       {
         return page_allocate (p.addr, false);
       }
@@ -149,18 +151,45 @@ page_out (struct page *p)
      dirty bit, to prevent a race with the process dirtying the
      page. */
 
-/* add code here */
+  /*P3*/
+  uint32_t *pd =  p->thread->pagedir;
+  pagedir_clear_page (pd, (void *) p->addr);
 
   /* Has the frame been modified? */
+  dirty = pagedir_is_dirty (pd, (void *) p->addr); 
 
-/* add code here */
+/*  this should never happen that we have no file and the dirty bit is set*/
+ // ASSERT(p->file != NULL && dirty);
 
-  /* Write frame contents to disk if necessary. */
+ if(!dirty) ok = true;
 
-/* add code here */
 
+  if(p->file != NULL && dirty)
+  {
+    if(p->private)
+    {
+      ok = swap_out(p);
+    }
+    else
+    {
+      ok = file_write_at(p->file, (const void *) p->frame->base, p->file_bytes, p->file_offset);
+    }
+ 
+  } 
+  else if(p->file == NULL)  /* File is NULL or dirty is not set, just swap*/
+  {
+    ok = swap_out(p);
+  }
+
+  if(ok){
+    p->frame = NULL; /* if everything else worked out we can NULL the frame */
+  }
   return ok;
 }
+
+
+
+
 
 /* Returns true if page P's data has been accessed recently,
    false otherwise.

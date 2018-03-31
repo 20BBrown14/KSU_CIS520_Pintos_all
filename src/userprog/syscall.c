@@ -15,6 +15,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/page.h"
+#include "vm/frame.h"
  
  
 static int sys_halt (void);
@@ -504,7 +505,35 @@ lookup_mapping (int handle)
 static void
 unmap (struct mapping *m) 
 {
-/* add code here */
+  size_t i;
+  struct page *p;
+  /*P3*/
+  /* Remove this maping from mappings list */
+  list_remove(&m->elem);
+
+  /* for each page in memory mapped file write dirty pages to disk */
+  for(i = 0; i < m->page_cnt; i ++){
+    p = (struct page *) m->base + i * PGSIZE;
+
+    /* if page is not dirty move to next page */
+    if (!pagedir_is_dirty(thread_current()->pagedir, p))
+    {
+      continue;
+    }
+    
+    /* page is dirty so it needs written out to file system */
+    lock_acquire(&fs_lock);
+    file_write_at(m->file,p,PGSIZE*(m->page_cnt),PGSIZE * i);
+    lock_release(&fs_lock);
+  }
+
+  /*free process memory*/
+  for(i = 0; i < m->page_cnt; i++)
+  {
+    p = (struct page *) m->base + i * PGSIZE;
+    page_deallocate(p);
+  }
+
 }
  
 /* Mmap system call. */
