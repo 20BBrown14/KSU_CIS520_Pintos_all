@@ -77,7 +77,7 @@ swap_out (struct page *p)
   /*P3*/ 
   for (i = 0; i < PAGE_SECTORS; i++)
   {
-    /* we write to the block pointer (swap device), at the offset of frame->base + i.*/
+    /* we write to the block pointer (swap device), at the offset of p->sector + i.*/
     /* final argument is the block we want to write*/
     block_write(swap_device, p->sector + i, (uint8_t *) p->frame->base + i * BLOCK_SECTOR_SIZE );
   }

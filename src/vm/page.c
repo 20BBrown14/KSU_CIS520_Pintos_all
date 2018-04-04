@@ -51,10 +51,12 @@ page_for_addr (const void *address)
         return hash_entry (e, struct page, hash_elem);
 
       /* No page.  Expand stack? */
-
+      /*P3*/
       /* If we cannot grow the stack, or trying to allocate outside the stack return null */
       /* (void *)thread_current()->user_esp - 32 < address) checks if the address given is on the stack*/
       /* (p.addr > phys_base - stack_max) checks if growing the stack will cause it to become too large */  
+      /*https://stackoverflow.com/questions/31328349/stack-memory-management-in-linux*/
+      /* https://www.kernel.org/doc/gorman/pdf/understand.pdf SECTION 4.6.1 & D.5.2.1*/
       if ((p.addr > PHYS_BASE- STACK_MAX) && ((void *)thread_current()->user_esp - 32 < address))
       {
         return page_allocate (p.addr, false);
@@ -166,7 +168,7 @@ page_out (struct page *p)
 
   if(p->file != NULL && dirty)
   {
-    if(p->private)
+    if(p->private) //see comment in vm/page.h
     {
       ok = swap_out(p);
     }

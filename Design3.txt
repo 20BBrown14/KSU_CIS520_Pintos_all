@@ -1,0 +1,153 @@
+		           +---------------------------+
+       	           |         CIS 520           |
+		           | PROJECT 3: Virtual Memory |
+		           |     DESIGN DOCUMENT       |
+		           +---------------------------+
+
+---- GROUP ----
+
+>> Fill in the names of your group members.
+
+Branden Brown
+Harold Vilander
+Sam Eichorst
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+https://www.kernel.org/doc/gorman/pdf/understand.pdf SECTION 4.6.1 & D.5.2.1
+https://github.com/ChristianJHughes/pintos-project3
+https://stackoverflow.com/questions/31328349/stack-memory-management-in-linux
+
+			PAGE TABLE MANAGEMENT
+			=====================
+
+---- ALGORITHMS ----
+
+>> A1: In a few paragraphs, describe the existing code for locating the
+>> frame, if any, that contains the data of a given page.
+
+page.c:40
+static struct page *
+page_for_addr (const void *address) 
+
+First we determine if the address passed into the function is within user space, if not just return NULL because we can't find a page (or create one) with a bad address.
+
+Second, with a valid address, we round down to the nearest page boundary for that address with the function pg_round_down. The return of pg_round_down is assigned to the addr member of a page struct.
+
+Note that the thread's page table is implemented as a hash table.
+We use hash_find to try and find that page in the current thread's page table. If it exists hash_find will return the page's table entry indicating that the page already exists.
+
+If the page does in fact exist we return that page from the page_for_addr function.
+---- SYNCHRONIZATION ----
+
+>> A2: When two user processes both need a new frame at the same time,
+>> how are races avoided?
+frame.c:107
+We try really *really* hard to allocate and lock a frame, if it doesn't work, just chill out for a second and try again later, no rush.
+
+frame.c:41
+static struct frame *
+try_frame_alloc_and_lock (struct page *page) 
+
+Before this function does anything it acquires a lock (scan_lock). If it can't it doesn't do anything. No race conditions.
+
+
+
+		       PAGING TO AND FROM DISK
+		       =======================
+
+---- ALGORITHMS ----
+
+>> B1: When a frame is required but none is free, some frame must be
+>> evicted.  Describe the algorithm used to choose a frame to evict.
+We did not implement this section in this project, however it seems this is accomplished in try_frame_alloc_and_lock in frame.c:41
+It appears to only consider temporal locality when deciding which frame to evict.
+
+>> B2: Explain your heuristic for deciding whether a page fault for an
+>> invalid virtual address should cause the stack to be extended into
+>> the page that faulted.
+page.c:40
+      if ((p.addr > PHYS_BASE- STACK_MAX) && ((void *)thread_current()->user_esp - 32 < address))
+	  
+	  (p.addr > phys_base - stack_max) checks if growing the stack will cause it to become too large 
+	  (void *)thread_current()->user_esp - 32 < address) checks if the address given is on the stack
+	  
+	  If either of these conditions fail we will not grow the stack.
+      
+			 MEMORY MAPPED FILES
+			 ===================
+
+---- DATA STRUCTURES ----
+
+>> C1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+Not. Applicable. 
+
+---- ALGORITHMS ----
+
+>> C2: Describe how memory mapped files integrate into your virtual
+>> memory subsystem.  Explain how the page fault and eviction
+>> processes differ between swap pages and other pages.
+
+Memory mapped files are implemented using the mapping struct, defined in syscall.c. The struct holds information about the file, including how many pages it uses (page_cnt), where in memory it is located (base), and a file struct which will contain the inode. If we need to evict a memory mapped file we remove the mapping from the mappings list. Then we write all the dirty pages in that mapping to the disk. After that we simply deallocate all the pages in the mapping using page_deallocate.
+
+Other pages are a bit different, we might not want to write the page out to the disk if we don't have to as that's expensive. Firstly we remove the page from the page table to remove the risk of race conditions with the page being modified or used in the process of removing. 
+If the page is not dirty then we just free the page frame and move on.
+If the page is dirty, and the page file is not null we check if we can write it to the disk using private member of the page struct. If the it is private then we just swap it out and will come back to it later to write it to the disk if needed. If the page is not private then we write it to the disk, free the page frame, and we're done.
+If the page file is NULL we don't care if it is dirty or not, we just swap out the frame, then free it, and we're done.
+
+>> C3: Explain how you determine whether a new file mapping overlaps
+>> any existing segment.
+
+New file mappings are only completed if there are free and unmapped pages. If there is not enough free or unmapped pages the process fails.
+
+---- RATIONALE ----
+
+>> C4: Mappings created with "mmap" have similar semantics to those of
+>> data demand-paged from executables, except that "mmap" mappings are
+>> written back to their original files, not to swap.  This implies
+>> that much of their implementation can be shared.  Explain why your
+>> implementation either does or does not share much of the code for
+>> the two situations.
+
+unmap calls page_deallocate on a page, which will eventually call page_out to actually swap out or write the page. So whether the page was memory mapped, or other, page_out is called either way and the same swap or write criteria is placed on both.
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+This assignment, especially compared to the other two projects, was a very reasonable amount of time.
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+If you're going to supply this much code it would be worth noting in class, or otherwise, where to start at. Also noting exactly what is that is already implemented. 
+
+The documentation provided for this project was confusing in terms of what to do considering that most of it was already implemented.
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?
